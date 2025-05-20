@@ -33,10 +33,10 @@ async function getConnection() {
 
 // Rota de Registro
 app.post('/register', async (req, res) => {
-    const { username, password } = req.body;
+    const { username, email, password } = req.body; // Adicionado 'email'
 
-    if (!username || !password) {
-        return res.status(400).json({ message: 'Nome de usuário e senha são obrigatórios.' });
+    if (!username || !email || !password) { // Validação de todos os campos
+        return res.status(400).json({ message: 'Nome de usuário, e-mail e senha são obrigatórios.' });
     }
 
     let connection;
@@ -45,9 +45,9 @@ app.post('/register', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10); // Hash da senha
 
         const result = await connection.execute(
-            `INSERT INTO users (username, password) VALUES (:username, :password)`,
-            { username: username, password: hashedPassword },
-            { autoCommit: true } // Commita a transação automaticamente
+            `INSERT INTO users (username, email, password) VALUES (:username, :email, :password)`, // Inserindo email
+            { username: username, email: email, password: hashedPassword },
+            { autoCommit: true }
         );
 
         res.status(201).json({ message: 'Usuário registrado com sucesso!' });
@@ -55,7 +55,13 @@ app.post('/register', async (req, res) => {
     } catch (err) {
         console.error('Erro ao registrar usuário:', err);
         if (err.errorNum === 1) { // ORA-00001: unique constraint violated
-            return res.status(409).json({ message: 'Nome de usuário já existe.' });
+            // Checar qual constraint foi violada para mensagem de erro mais específica
+            if (err.message.includes('USERNAME') || err.message.includes('USERS_USERNAME_UK')) { // Assumindo nome da constraint
+                return res.status(409).json({ message: 'Nome de usuário já existe.' });
+            } else if (err.message.includes('EMAIL') || err.message.includes('USERS_EMAIL_UK')) { // Assumindo nome da constraint
+                return res.status(409).json({ message: 'E-mail já está em uso.' });
+            }
+            return res.status(409).json({ message: 'Registro duplicado. Nome de usuário ou e-mail já existe.' });
         }
         res.status(500).json({ message: 'Erro interno do servidor ao registrar usuário.' });
     } finally {
