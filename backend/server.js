@@ -16,7 +16,7 @@ app.use(cors());
 const dbConfig = {
     user          : "rm558833",
     password      : "200306",
-    connectString : "oracle.fiap.com.br/ORCL" // Ou o TNS alias, ou o endereço IP:porta/serviço
+    connectString : "oracle.fiap.com.br:1521/ORCL" // Ou o TNS alias, ou o endereço IP:porta/serviço
 };
 
 // Função para obter conexão com o banco de dados

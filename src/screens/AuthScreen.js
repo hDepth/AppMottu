@@ -2,8 +2,9 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import axios from 'axios'; // Para fazer requisições HTTP
+import AuthStyles from '../style/AuthScreen';
 
-const API_URL = 'http://seu_ip_da_maquina_backend:3000'; // Mude para o IP da sua máquina ou localhost se estiver no emulador
+const API_URL = 'http://10.0.2.2:3000'; // Mude para o IP da sua máquina ou localhost se estiver no emulador
 
 function AuthScreen({ navigation }) {
     const [username, setUsername] = useState('');
@@ -30,17 +31,17 @@ function AuthScreen({ navigation }) {
     };
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>{isLogin ? 'Login' : 'Registro'}</Text>
+        <View style={AuthStyles.container}>
+            <Text style={AuthStyles.title}>{isLogin ? 'Login' : 'Registro'}</Text>
             <TextInput
-                style={styles.input}
+                style={AuthStyles.input}
                 placeholder="Nome de Usuário"
                 value={username}
                 onChangeText={setUsername}
                 autoCapitalize="none"
             />
             <TextInput
-                style={styles.input}
+                style={AuthStyles.input}
                 placeholder="Senha"
                 value={password}
                 onChangeText={setPassword}
@@ -58,31 +59,5 @@ function AuthScreen({ navigation }) {
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-        backgroundColor: '#f5f5f5',
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        marginBottom: 30,
-        color: '#333',
-    },
-    input: {
-        width: '100%',
-        height: 50,
-        backgroundColor: '#fff',
-        borderRadius: 8,
-        paddingHorizontal: 15,
-        marginBottom: 15,
-        borderWidth: 1,
-        borderColor: '#ddd',
-    },
-});
 
 export default AuthScreen;
