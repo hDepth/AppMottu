@@ -1,7 +1,8 @@
 // src/screens/HomeScreen.js
 import React from 'react';
-import { View, Text, Button } from 'react-native';
-import HomeStyles from '../style/HomeScreen'; 
+import { View, Text, TouchableOpacity } from 'react-native'; // Usar TouchableOpacity para o botão
+import HomeStyles from '../style/HomeScreen';
+import { Colors } from '../style/Colors';
 
 function HomeScreen({ navigation }) {
     return (
@@ -9,15 +10,19 @@ function HomeScreen({ navigation }) {
             <Text style={HomeStyles.title}>Dashboard do Pátio</Text>
             <Text style={HomeStyles.subtitle}>Gerenciamento de Motos</Text>
 
-            <Button
-                title="Ver Motos no Mapa"
-                onPress={() => Alert.alert('Navegar para o Mapa', 'Funcionalidade de mapa será implementada aqui.')}
-            />
-            {/* Futuramente, outros botões e informações como: */}
-            {/* <Button title="Listar Todas as Motos" onPress={() => navigation.navigate('MotorcycleList')} /> */}
-            {/* <Button title="Adicionar Nova Moto" onPress={() => navigation.navigate('AddMotorcycle')} /> */}
-            {/* <Text style={HomeStyles.infoText}>Motos disponíveis: X</Text> */}
-            {/* <Text style={HomeStyles.infoText}>Motos em manutenção: Y</Text> */}
+            <TouchableOpacity
+                style={HomeStyles.button}
+                onPress={() => navigation.navigate('Motos')} // Navega para a nova tela 'Motos'
+            >
+                <Text style={HomeStyles.buttonText}>Ver Motos</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+                style={HomeStyles.button} // Pode usar o mesmo estilo de botão por enquanto
+                onPress={() => alert('Funcionalidade de Mapa será implementada aqui.')}
+            >
+                <Text style={HomeStyles.buttonText}>Ver Motos no Mapa</Text>
+            </TouchableOpacity>
         </View>
     );
 }
