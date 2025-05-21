@@ -18,44 +18,105 @@ const MotosStyles = StyleSheet.create({
         fontSize: 30,
         fontWeight: 'bold',
         color: Colors.mottuGreen,
-        marginBottom: 20, // Ajuste para dar espaço à barra de filtros
+        marginBottom: 20,
         textAlign: 'center',
         paddingTop: 10,
     },
-    // NOVOS ESTILOS PARA A BARRA DE FILTROS
-    filterButtonsContainer: {
+    // NOVO: Contêiner para a barra de pesquisa e o botão de filtro
+    searchAndFilterContainer: {
         flexDirection: 'row',
-        justifyContent: 'space-around',
         alignItems: 'center',
-        marginBottom: 20,
-        paddingHorizontal: 5, // Pequeno padding para as bordas
-        minHeight: 45, // Garante altura mínima para scroll
+        marginBottom: 15,
+        // Remover shadow daqui, colocar no searchInput para controle individual
     },
-    filterButton: {
-        paddingVertical: 8,
+    searchInput: {
+        flex: 1,
+        height: 50,
+        backgroundColor: Colors.mottuWhite,
+        borderRadius: 10, // Um pouco mais arredondado
         paddingHorizontal: 15,
-        borderRadius: 20,
-        backgroundColor: Colors.mottuLightGray, // Cor de fundo para botões inativos
-        marginHorizontal: 5, // Espaçamento entre os botões
-        borderWidth: 1,
-        borderColor: Colors.mottuDark,
-        minWidth: 90, // Largura mínima para botões menores
+        color: Colors.mottuDark,
+        fontSize: 16,
+        marginRight: 10, // Espaçamento entre o input e o botão de filtro
+        shadowColor: Colors.mottuDark, // Sombra para o input
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 5,
+        elevation: 6,
+    },
+    // NOVO: Botão de ícone para abrir o modal de filtros
+    filterButtonIcon: {
+        width: 80, // Largura fixa para o botão
+        height: 50,
+        backgroundColor: Colors.mottuGreen,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: Colors.mottuDark,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 5,
+        elevation: 6,
+    },
+    filterButtonIconText: {
+        color: Colors.mottuDark, // Texto preto para o botão verde
+        fontWeight: 'bold',
+        fontSize: 15,
+    },
+    // NOVO: Contêiner para exibir os chips de filtros ativos
+    activeFiltersContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap', // Permite que os chips quebrem a linha
+        marginBottom: 15,
+        minHeight: 30, // Garante altura mínima mesmo sem filtros
+        alignItems: 'center', // Centraliza verticalmente se houver apenas texto
+    },
+    activeFilterChip: {
+        flexDirection: 'row',
+        backgroundColor: Colors.mottuGreen, // Fundo verde para chips ativos
+        borderRadius: 15,
+        paddingVertical: 6,
+        paddingLeft: 12,
+        paddingRight: 8,
+        marginRight: 8,
+        marginBottom: 5,
+        alignItems: 'center',
+        shadowColor: Colors.mottuDark,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
+        elevation: 4,
+    },
+    activeFilterChipText: {
+        color: Colors.mottuDark,
+        fontSize: 13,
+        fontWeight: '600',
+    },
+    removeFilterButton: {
+        marginLeft: 5,
+        padding: 2,
+        borderRadius: 10,
+        backgroundColor: Colors.mottuDark, // Fundo escuro para o "x"
+        width: 18,
+        height: 18,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    filterButtonActive: {
-        backgroundColor: Colors.mottuGreen, // Cor de fundo para o botão ativo
-        borderColor: Colors.mottuGreen,
+    removeFilterText: {
+        color: Colors.mottuWhite,
+        fontSize: 10,
+        fontWeight: 'bold',
     },
-    filterButtonText: {
-        color: Colors.mottuDark,
+    noFiltersText: {
+        color: Colors.mottuLightGray,
         fontSize: 14,
-        fontWeight: '600',
+        fontStyle: 'italic',
         textAlign: 'center',
+        width: '100%', // Para centralizar
     },
-    filterButtonTextActive: {
-        color: Colors.mottuDark, // Texto preto para contraste no verde
-    },
+    // Removemos filterSectionTitle, filterChipsContainer, filterChip, filterChipActive, filterChipText, filterChipTextActive daqui
+    // pois eles agora estão no FilterModalStyle.
+
     listContent: {
         paddingBottom: 80,
         paddingTop: 5,
