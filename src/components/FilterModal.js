@@ -7,32 +7,60 @@ import {
     TouchableOpacity,
     StyleSheet,
     ScrollView,
+    Alert, // Para lidar com erros de AsyncStorage
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Para carregar as localizações
 
 import { Colors } from '../style/Colors';
 import { BIKE_MODELS } from '../config/bikeModels';
 
 const STATUS_FILTERS = ['Todos', 'Disponível', 'Alugada', 'Em Manutenção', 'Aguardando Revisão'];
+const LOCATIONS_STORAGE_KEY = '@mottuApp:locations'; // Chave para as localizações salvas
 
-function FilterModal({ visible, onClose, onApplyFilters, currentStatusFilter, currentModelFilter }) {
+function FilterModal({ visible, onClose, onApplyFilters, currentStatusFilter, currentModelFilter, currentLocationFilter }) { // NOVO: currentLocationFilter
     const [selectedStatus, setSelectedStatus] = useState(currentStatusFilter);
     const [selectedModel, setSelectedModel] = useState(currentModelFilter);
+    const [selectedLocation, setSelectedLocation] = useState(currentLocationFilter); // NOVO: Estado para localização
+    const [availableLocations, setAvailableLocations] = useState([]); // NOVO: Para as localizações salvas
 
     // Sincroniza os estados internos do modal com as props passadas
     useEffect(() => {
         setSelectedStatus(currentStatusFilter);
         setSelectedModel(currentModelFilter);
-    }, [currentStatusFilter, currentModelFilter]);
+        setSelectedLocation(currentLocationFilter); // Sincroniza o filtro de localização
+    }, [currentStatusFilter, currentModelFilter, currentLocationFilter]);
+
+    // NOVO: Carregar localizações disponíveis ao abrir o modal
+    useEffect(() => {
+        const loadAvailableLocations = async () => {
+            try {
+                const storedLocations = await AsyncStorage.getItem(LOCATIONS_STORAGE_KEY);
+                if (storedLocations) {
+                    setAvailableLocations(JSON.parse(storedLocations));
+                } else {
+                    setAvailableLocations([]);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar localizações para o modal de filtro:', error);
+                Alert.alert('Erro', 'Não foi possível carregar as localizações para filtrar.');
+            }
+        };
+        if (visible) { // Carrega apenas quando o modal está visível
+            loadAvailableLocations();
+        }
+    }, [visible]);
+
 
     const handleApply = () => {
-        onApplyFilters(selectedStatus, selectedModel);
+        onApplyFilters(selectedStatus, selectedModel, selectedLocation); // NOVO: Passa selectedLocation
         onClose();
     };
 
     const handleClearFilters = () => {
         setSelectedStatus('Todos');
         setSelectedModel('Todos');
-        onApplyFilters('Todos', 'Todos'); // Aplica filtros "Todos" na tela principal
+        setSelectedLocation('Todos'); // Limpa o filtro de localização
+        onApplyFilters('Todos', 'Todos', 'Todos'); // Aplica filtros "Todos" na tela principal
         onClose();
     };
 
@@ -113,6 +141,48 @@ function FilterModal({ visible, onClose, onApplyFilters, currentStatusFilter, cu
                             </TouchableOpacity>
                         ))}
                     </ScrollView>
+
+                    {/* NOVO: Filtro por Localização */}
+                    <Text style={filterModalStyles.sectionTitle}>Localização:</Text>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={filterModalStyles.chipsContainer}
+                    >
+                        <TouchableOpacity
+                            key="TodasLocalizacoes"
+                            style={[
+                                filterModalStyles.chip,
+                                selectedLocation === 'Todos' && filterModalStyles.chipActive,
+                            ]}
+                            onPress={() => setSelectedLocation('Todos')}
+                        >
+                            <Text style={[
+                                filterModalStyles.chipText,
+                                selectedLocation === 'Todos' && filterModalStyles.chipTextActive,
+                            ]}>
+                                Todas Localizações
+                            </Text>
+                        </TouchableOpacity>
+                        {availableLocations.map((locationOption) => (
+                            <TouchableOpacity
+                                key={locationOption.id}
+                                style={[
+                                    filterModalStyles.chip,
+                                    selectedLocation === locationOption.name && filterModalStyles.chipActive,
+                                ]}
+                                onPress={() => setSelectedLocation(locationOption.name)}
+                            >
+                                <Text style={[
+                                    filterModalStyles.chipText,
+                                    selectedLocation === locationOption.name && filterModalStyles.chipTextActive,
+                                ]}>
+                                    {locationOption.name}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+
 
                     <View style={filterModalStyles.buttonContainer}>
                         <TouchableOpacity

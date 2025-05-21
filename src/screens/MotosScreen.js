@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 // Se você tem MaterialIcons, pode usar:
-// import MaterialIcons from 'react-native-vector-icons/MaterialIcons'; // Para o ícone de engrenagem/localização
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 import MotosStyles from '../style/MotosScreen';
 import { Colors } from '../style/Colors';
@@ -31,6 +31,7 @@ function MotosScreen({ navigation, route }) {
     const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
     const [currentStatusFilter, setCurrentStatusFilter] = useState('Todos');
     const [currentModelFilter, setCurrentModelFilter] = useState('Todos');
+    const [currentLocationFilter, setCurrentLocationFilter] = useState('Todos'); // NOVO: Estado para filtro de localização
 
     const [searchText, setSearchText] = useState('');
 
@@ -79,17 +80,26 @@ function MotosScreen({ navigation, route }) {
         }, [])
     );
 
+    // FUNÇÃO ATUALIZADA PARA USAR OS FILTROS DO MODAL, INCLUINDO LOCALIZAÇÃO
     const getFilteredAndSortedMotorcycles = () => {
         let filtered = motorcycles;
 
+        // 1. Filtrar por Status
         if (currentStatusFilter !== 'Todos') {
             filtered = filtered.filter(moto => moto.status === currentStatusFilter);
         }
 
+        // 2. Filtrar por Modelo
         if (currentModelFilter !== 'Todos') {
             filtered = filtered.filter(moto => moto.modelId === currentModelFilter);
         }
 
+        // 3. NOVO: Filtrar por Localização
+        if (currentLocationFilter !== 'Todos') {
+            filtered = filtered.filter(moto => moto.location === currentLocationFilter);
+        }
+
+        // 4. Filtrar por Texto de Pesquisa (Placa)
         if (searchText.trim() !== '') {
             const lowerCaseSearchText = searchText.trim().toLowerCase();
             filtered = filtered.filter(moto =>
@@ -97,6 +107,7 @@ function MotosScreen({ navigation, route }) {
             );
         }
 
+        // 5. Ordenar por Placa
         filtered.sort((a, b) => a.licensePlate.localeCompare(b.licensePlate));
 
         return filtered;
@@ -114,9 +125,11 @@ function MotosScreen({ navigation, route }) {
 
     const openFilterModal = () => setIsFilterModalVisible(true);
     const closeFilterModal = () => setIsFilterModalVisible(false);
-    const handleApplyFilters = (status, model) => {
+ 
+    const handleApplyFilters = (status, model, location) => {
         setCurrentStatusFilter(status);
         setCurrentModelFilter(model);
+        setCurrentLocationFilter(location); // Define o filtro de localização
     };
 
     const renderMotorcycleItem = ({ item }) => {
@@ -158,20 +171,17 @@ function MotosScreen({ navigation, route }) {
     return (
         <SafeAreaView style={MotosStyles.safeArea}>
             <View style={MotosStyles.container}>
-                {/* CABEÇALHO DA TELA COM BOTÃO DE GERENCIAR LOCALIZAÇÕES */}
                 <View style={MotosStyles.headerContainer}>
                     <Text style={MotosStyles.headerTitle}>Frota de Motos</Text>
                     <TouchableOpacity
                         style={MotosStyles.manageLocationsButton}
                         onPress={() => navigation.navigate('GerenciarLocalizacoes')}
                     >
-                        {/* Se tiver MaterialIcons instalado, pode usar: */}
                         {/* <MaterialIcons name="location-on" size={24} color={Colors.mottuGreen} /> */}
                         <Text style={MotosStyles.manageLocationsButtonText}>Localizações</Text>
                     </TouchableOpacity>
                 </View>
 
-                {/* Contêiner da Barra de Pesquisa e Botão de Filtro */}
                 <View style={MotosStyles.searchAndFilterContainer}>
                     <TextInput
                         style={MotosStyles.searchInput}
@@ -187,7 +197,7 @@ function MotosScreen({ navigation, route }) {
                     </TouchableOpacity>
                 </View>
 
-                {/* Exibição dos filtros ativos */}
+                {/* Exibição dos filtros ativos (incluindo localização) */}
                 <View style={MotosStyles.activeFiltersContainer}>
                     {currentStatusFilter !== 'Todos' && (
                         <View style={MotosStyles.activeFilterChip}>
@@ -205,7 +215,17 @@ function MotosScreen({ navigation, route }) {
                             </TouchableOpacity>
                         </View>
                     )}
-                    {currentStatusFilter === 'Todos' && currentModelFilter === 'Todos' && searchText.trim() === '' && (
+                    {/* NOVO: Chip para o filtro de localização ativo */}
+                    {currentLocationFilter !== 'Todos' && (
+                        <View style={MotosStyles.activeFilterChip}>
+                            <Text style={MotosStyles.activeFilterChipText}>{currentLocationFilter}</Text>
+                            <TouchableOpacity onPress={() => setCurrentLocationFilter('Todos')} style={MotosStyles.removeFilterButton}>
+                                <Text style={MotosStyles.removeFilterText}>x</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                    {/* Atualiza a mensagem "noFiltersText" para considerar o filtro de localização também */}
+                    {(currentStatusFilter === 'Todos' && currentModelFilter === 'Todos' && currentLocationFilter === 'Todos' && searchText.trim() === '') && (
                         <Text style={MotosStyles.noFiltersText}>Todos os filtros desativados.</Text>
                     )}
                 </View>
@@ -247,6 +267,7 @@ function MotosScreen({ navigation, route }) {
                 onApplyFilters={handleApplyFilters}
                 currentStatusFilter={currentStatusFilter}
                 currentModelFilter={currentModelFilter}
+                currentLocationFilter={currentLocationFilter} // NOVO: Passando o filtro de localização
             />
         </SafeAreaView>
     );

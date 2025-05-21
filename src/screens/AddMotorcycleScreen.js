@@ -1,5 +1,5 @@
 // src/screens/AddMotorcycleScreen.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Adicionado useEffect
 import {
     View,
     Text,
@@ -22,13 +22,15 @@ import { BIKE_MODELS } from '../config/bikeModels';
 
 const STATUS_OPTIONS = ['Selecione um status', 'Disponível', 'Em Manutenção', 'Alugada', 'Aguardando Revisão'];
 const MOTOS_STORAGE_KEY = '@mottuApp:motorcycles';
+const LOCATIONS_STORAGE_KEY = '@mottuApp:locations'; // Nova chave para as localizações
 
 function AddMotorcycleScreen({ navigation }) { // <--- AQUI COMEÇA O ESCOPO DO COMPONENTE
     const [selectedModelId, setSelectedModelId] = useState('selecione_modelo');
     const [licensePlate, setLicensePlate] = useState('');
     const [status, setStatus] = useState(STATUS_OPTIONS[0]);
-    const [location, setLocation] = useState('');
+    const [location, setLocation] = useState(''); // Estado para a localização
     const [loading, setLoading] = useState(false);
+    const [availableLocations, setAvailableLocations] = useState([]); // NOVO: Estado para armazenar as localizações disponíveis
 
     // Erros
     const [modelError, setModelError] = useState('');
@@ -39,6 +41,24 @@ function AddMotorcycleScreen({ navigation }) { // <--- AQUI COMEÇA O ESCOPO DO 
     const currentSelectedModel = BIKE_MODELS.find(model => model.id === selectedModelId);
     const modelName = currentSelectedModel ? currentSelectedModel.name : '';
     const modelImage = currentSelectedModel ? currentSelectedModel.image : null;
+
+    // NOVO: Carregar localizações ao montar o componente
+    useEffect(() => {
+        const loadAvailableLocations = async () => {
+            try {
+                const storedLocations = await AsyncStorage.getItem(LOCATIONS_STORAGE_KEY);
+                if (storedLocations) {
+                    setAvailableLocations(JSON.parse(storedLocations));
+                } else {
+                    setAvailableLocations([]);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar localizações para a tela de adição:', error);
+                Alert.alert('Erro', 'Não foi possível carregar as localizações salvas.');
+            }
+        };
+        loadAvailableLocations();
+    }, []); // Array de dependências vazio para rodar apenas na montagem
 
     const handleModelChange = (itemValue) => {
         setSelectedModelId(itemValue);
@@ -51,8 +71,9 @@ function AddMotorcycleScreen({ navigation }) { // <--- AQUI COMEÇA O ESCOPO DO 
 
     const validateLicensePlate = (text) => {
         setLicensePlate(text.toUpperCase());
+        // Ajustado para permitir tanto o formato antigo quanto o Mercosul
         const plateRegex = /^[A-Z]{3}-\d{4}$/;
-        const mercosulRegex = /^[A-Z]{3}\d[A-Z]\d{2}$/;
+        const mercosulRegex = /^[A-Z]{3}\d[A-Z0-9]\d{2}$/; // Permite número ou letra na 4ª posição
 
         if (text.length > 0 && !plateRegex.test(text) && !mercosulRegex.test(text)) {
             setLicensePlateError('Formato de placa inválido (ex: ABC-1234 ou ABC1D23).');
@@ -70,10 +91,10 @@ function AddMotorcycleScreen({ navigation }) { // <--- AQUI COMEÇA O ESCOPO DO 
         }
     };
 
-    const validateLocation = (text) => {
-        setLocation(text);
-        if (text.trim().length < 5 && text.trim().length > 0) {
-            setLocationError('A localização deve ter pelo menos 5 caracteres.');
+    const handleLocationChange = (value) => { // Unificado para o Picker e TextInput
+        setLocation(value);
+        if (value.trim().length < 3 && value.trim().length > 0) { // Mínimo de 3 caracteres para localização
+            setLocationError('A localização deve ter pelo menos 3 caracteres.');
         } else {
             setLocationError('');
         }
@@ -81,6 +102,7 @@ function AddMotorcycleScreen({ navigation }) { // <--- AQUI COMEÇA O ESCOPO DO 
 
     // <--- MOVA ESTA FUNÇÃO PARA DENTRO DO ESCOPO DO COMPONENTE
     const handleSaveMotorcycle = async () => {
+        // Resetar erros
         setModelError('');
         setLicensePlateError('');
         setStatusError('');
@@ -93,15 +115,18 @@ function AddMotorcycleScreen({ navigation }) { // <--- AQUI COMEÇA O ESCOPO DO 
         if (!licensePlate.trim()) { setLicensePlateError('Placa é obrigatória.'); hasError = true; }
         else {
             const plateRegex = /^[A-Z]{3}-\d{4}$/;
-            const mercosulRegex = /^[A-Z]{3}\d[A-Z]\d{2}$/;
+            const mercosulRegex = /^[A-Z]{3}\d[A-Z0-9]\d{2}$/; // Permite número ou letra na 4ª posição
             if (!plateRegex.test(licensePlate) && !mercosulRegex.test(licensePlate)) {
                 setLicensePlateError('Formato de placa inválido (ex: ABC-1234 ou ABC1D23).'); hasError = true;
             }
         }
 
         if (status === STATUS_OPTIONS[0]) { setStatusError('Status é obrigatório.'); hasError = true; }
+        
+        // NOVO: Validação da localização para ser pelo menos 3 caracteres
         if (!location.trim()) { setLocationError('Localização é obrigatória.'); hasError = true; }
-        else if (location.trim().length < 5) { setLocationError('A localização deve ter pelo menos 5 caracteres.'); hasError = true; }
+        else if (location.trim().length < 3) { setLocationError('A localização deve ter pelo menos 3 caracteres.'); hasError = true; }
+
 
         if (hasError) {
             Alert.alert('Erro de Validação', 'Por favor, corrija os campos destacados.');
@@ -110,17 +135,39 @@ function AddMotorcycleScreen({ navigation }) { // <--- AQUI COMEÇA O ESCOPO DO 
 
         setLoading(true);
         try {
+            const trimmedLocation = location.trim(); // Limpa espaços em branco
+
+            // NOVO: Se a localização digitada não existe na lista, adicione-a
+            const locationExists = availableLocations.some(loc => loc.name.toLowerCase() === trimmedLocation.toLowerCase());
+            if (trimmedLocation !== '' && !locationExists) {
+                const newLocationEntry = {
+                    id: Date.now().toString(), // ID único para a nova localização
+                    name: trimmedLocation,
+                };
+                const updatedLocations = [...availableLocations, newLocationEntry];
+                await AsyncStorage.setItem(LOCATIONS_STORAGE_KEY, JSON.stringify(updatedLocations));
+                setAvailableLocations(updatedLocations); // Atualiza a lista de locais em memória
+            }
+
             const newMotorcycle = {
                 id: Date.now().toString(),
                 modelId: selectedModelId,
-                model: modelName, 
+                model: modelName,
                 licensePlate,
                 status,
-                location,
+                location: trimmedLocation, // Garante que a localização esteja limpa
             };
 
             const storedMotos = await AsyncStorage.getItem(MOTOS_STORAGE_KEY);
             let motos = storedMotos ? JSON.parse(storedMotos) : [];
+
+            // NOVO: Verificar se a placa já existe
+            const plateAlreadyExists = motos.some(moto => moto.licensePlate === newMotorcycle.licensePlate);
+            if (plateAlreadyExists) {
+                Alert.alert('Erro', 'Já existe uma moto cadastrada com esta placa.');
+                setLoading(false);
+                return;
+            }
 
             motos.push(newMotorcycle);
             await AsyncStorage.setItem(MOTOS_STORAGE_KEY, JSON.stringify(motos));
@@ -131,9 +178,9 @@ function AddMotorcycleScreen({ navigation }) { // <--- AQUI COMEÇA O ESCOPO DO 
             setSelectedModelId('selecione_modelo');
             setLicensePlate('');
             setStatus(STATUS_OPTIONS[0]);
-            setLocation('');
+            setLocation(''); // Limpa a localização também
 
-            navigation.navigate('Motos', { refresh: true });
+            navigation.navigate('Motos', { refresh: true }); // Pode ser útil para atualizar a lista na tela de motos
 
         } catch (error) {
             console.error('Erro ao salvar moto com AsyncStorage:', error);
@@ -185,6 +232,7 @@ function AddMotorcycleScreen({ navigation }) { // <--- AQUI COMEÇA O ESCOPO DO 
                             placeholderTextColor={Colors.mottuLightGray}
                             value={licensePlate}
                             onChangeText={validateLicensePlate}
+                            maxLength={7} // Limita o tamanho para placas (antigas e mercosul são até 7)
                             autoCapitalize="characters"
                         />
                         {licensePlateError ? <Text style={AddMotorcycleStyles.errorText}>{licensePlateError}</Text> : null}
@@ -204,19 +252,41 @@ function AddMotorcycleScreen({ navigation }) { // <--- AQUI COMEÇA O ESCOPO DO 
                         </View>
                         {statusError ? <Text style={AddMotorcycleStyles.errorText}>{statusError}</Text> : null}
 
+                        {/* NOVO: Campo de Localização com Picker e TextInput (mantendo estilos) */}
                         <Text style={AddMotorcycleStyles.label}>Localização:</Text>
+                        {availableLocations.length > 0 && ( // Mostra o picker se houver localizações salvas
+                            <View style={[AddMotorcycleStyles.pickerContainer, locationError ? AddMotorcycleStyles.inputError : {}]}>
+                                <Picker
+                                    selectedValue={location}
+                                    onValueChange={(itemValue) => handleLocationChange(itemValue)}
+                                    style={AddMotorcycleStyles.picker}
+                                    itemStyle={AddMotorcycleStyles.pickerItem}
+                                >
+                                    <Picker.Item label="-- Selecione uma localização --" value="" />
+                                    {availableLocations.map(loc => (
+                                        <Picker.Item key={loc.id} label={loc.name} value={loc.name} />
+                                    ))}
+                                </Picker>
+                            </View>
+                        )}
+                        {/* O TextInput sempre aparece, mas com placeholder ajustado */}
                         <TextInput
-                            style={[AddMotorcycleStyles.input, locationError ? AddMotorcycleStyles.inputError : {}]}
-                            placeholder="Ex: Pátio A - Vaga 10"
+                            style={[
+                                AddMotorcycleStyles.input,
+                                locationError ? AddMotorcycleStyles.inputError : {},
+                                // Adiciona margem superior se o Picker estiver visível para separar
+                                availableLocations.length > 0 ? { marginTop: 10 } : {}
+                            ]}
+                            placeholder={availableLocations.length > 0 ? "Ou digite uma nova localização" : "Ex: Pátio A - Vaga 10"}
                             placeholderTextColor={Colors.mottuLightGray}
                             value={location}
-                            onChangeText={validateLocation}
+                            onChangeText={handleLocationChange}
                         />
                         {locationError ? <Text style={AddMotorcycleStyles.errorText}>{locationError}</Text> : null}
 
                         <TouchableOpacity
                             style={AddMotorcycleStyles.button}
-                            onPress={handleSaveMotorcycle} // Agora handleSaveMotorcycle está no escopo
+                            onPress={handleSaveMotorcycle}
                             disabled={loading}
                         >
                             {loading ? (
