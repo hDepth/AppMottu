@@ -7,6 +7,7 @@ import HomeScreen from './src/screens/HomeScreen';
 import MotosScreen from './src/screens/MotosScreen';
 import AddMotorcycleScreen from './src/screens/AddMotorcycleScreen';
 import ManageLocationsScreen from './src/screens/ManageLocationsScreen';
+import PatioMapScreen from './src/screens/PatioMapScreen';
 import { Colors } from './src/style/Colors';
 
 
@@ -15,7 +16,7 @@ const Stack = createNativeStackNavigator();
 export default function App() {
     return (
         <NavigationContainer>
-            <Stack.Navigator initialRouteName="Auth">
+            <Stack.Navigator initialRouteName="Home">
                 <Stack.Screen name="Auth" component={AuthScreen} options={{ headerShown: false }} />
                 <Stack.Screen
                     name="Home"
@@ -59,6 +60,16 @@ export default function App() {
                         headerTintColor: Colors.mottuGreen,
                         headerBackTitleVisible: false,
                     }}
+                />
+                <Stack.Screen 
+                name="MapeamentoPatio" 
+                component={PatioMapScreen}
+                options={{
+                    headerTitle: 'Mapa',
+                    headerStyle: { backgroundColor: Colors.mottuDark },
+                    headerTintColor: Colors.mottuGreen,
+                    headerBackTitleVisible: false,
+                }}
                 />
             </Stack.Navigator>
         </NavigationContainer>

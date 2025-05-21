@@ -31,7 +31,7 @@ function MotosScreen({ navigation, route }) {
     const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
     const [currentStatusFilter, setCurrentStatusFilter] = useState('Todos');
     const [currentModelFilter, setCurrentModelFilter] = useState('Todos');
-    const [currentLocationFilter, setCurrentLocationFilter] = useState('Todos'); // NOVO: Estado para filtro de localização
+    const [currentLocationFilter, setCurrentLocationFilter] = useState('Todos');
 
     const [searchText, setSearchText] = useState('');
 
@@ -65,41 +65,77 @@ function MotosScreen({ navigation, route }) {
             );
 
             await AsyncStorage.setItem(MOTOS_STORAGE_KEY, JSON.stringify(updatedMotos));
-            setMotorcycles(updatedMotos);
+            // Não atualizamos o estado aqui, pois o closeEditModal fará um loadMotorcycles completo
             Alert.alert('Sucesso', 'Moto atualizada com sucesso!');
+            closeEditModal(); // Fecha o modal após a atualização e recarrega
         } catch (error) {
             console.error('Erro ao atualizar moto no AsyncStorage:', error);
             Alert.alert('Erro', 'Não foi possível atualizar a moto. Tente novamente.');
         }
     };
 
+    // NOVO: Função para excluir moto (passada para o modal)
+    const handleDeleteMotorcycle = async (motoId) => {
+        Alert.alert(
+            "Confirmar Exclusão",
+            "Tem certeza que deseja excluir esta moto? Esta ação é irreversível.",
+            [
+                {
+                    text: "Cancelar",
+                    style: "cancel"
+                },
+                {
+                    text: "Excluir",
+                    onPress: async () => {
+                        try {
+                            const storedMotos = await AsyncStorage.getItem(MOTOS_STORAGE_KEY);
+                            let motos = storedMotos ? JSON.parse(storedMotos) : [];
+
+                            const filteredMotos = motos.filter(moto => moto.id !== motoId);
+
+                            await AsyncStorage.setItem(MOTOS_STORAGE_KEY, JSON.stringify(filteredMotos));
+                            Alert.alert('Sucesso', 'Moto excluída com sucesso!');
+                            closeEditModal(); // Fecha o modal após a exclusão e recarrega
+                        } catch (error) {
+                            console.error('Erro ao excluir moto do AsyncStorage:', error);
+                            Alert.alert('Erro', 'Não foi possível excluir a moto. Tente novamente.');
+                        }
+                    },
+                    style: "destructive"
+                }
+            ],
+            { cancelable: true }
+        );
+    };
+
 
     useFocusEffect(
         useCallback(() => {
             loadMotorcycles();
-        }, [])
+            // Lidar com o filtro inicial vindo da PatioMapScreen
+            if (route.params?.initialLocationFilter) {
+                setCurrentLocationFilter(route.params.initialLocationFilter);
+                // Limpa o parâmetro para não aplicar novamente ao voltar para a tela
+                navigation.setParams({ initialLocationFilter: undefined });
+            }
+        }, [route.params?.initialLocationFilter])
     );
 
-    // FUNÇÃO ATUALIZADA PARA USAR OS FILTROS DO MODAL, INCLUINDO LOCALIZAÇÃO
     const getFilteredAndSortedMotorcycles = () => {
         let filtered = motorcycles;
 
-        // 1. Filtrar por Status
         if (currentStatusFilter !== 'Todos') {
             filtered = filtered.filter(moto => moto.status === currentStatusFilter);
         }
 
-        // 2. Filtrar por Modelo
         if (currentModelFilter !== 'Todos') {
             filtered = filtered.filter(moto => moto.modelId === currentModelFilter);
         }
 
-        // 3. NOVO: Filtrar por Localização
         if (currentLocationFilter !== 'Todos') {
             filtered = filtered.filter(moto => moto.location === currentLocationFilter);
         }
 
-        // 4. Filtrar por Texto de Pesquisa (Placa)
         if (searchText.trim() !== '') {
             const lowerCaseSearchText = searchText.trim().toLowerCase();
             filtered = filtered.filter(moto =>
@@ -107,7 +143,6 @@ function MotosScreen({ navigation, route }) {
             );
         }
 
-        // 5. Ordenar por Placa
         filtered.sort((a, b) => a.licensePlate.localeCompare(b.licensePlate));
 
         return filtered;
@@ -121,20 +156,21 @@ function MotosScreen({ navigation, route }) {
     const closeEditModal = () => {
         setIsEditModalVisible(false);
         setSelectedMotorcycle(null);
+        loadMotorcycles(); // Recarrega as motos para garantir que a lista esteja atualizada após edição/exclusão
     };
 
     const openFilterModal = () => setIsFilterModalVisible(true);
     const closeFilterModal = () => setIsFilterModalVisible(false);
- 
+
     const handleApplyFilters = (status, model, location) => {
         setCurrentStatusFilter(status);
         setCurrentModelFilter(model);
-        setCurrentLocationFilter(location); // Define o filtro de localização
+        setCurrentLocationFilter(location);
     };
 
     const renderMotorcycleItem = ({ item }) => {
         const bikeModel = BIKE_MODELS.find(model => model.id === item.modelId);
-        const imageUrl = bikeModel ? bikeModel.image : require('../assets/Mottu 110i.jpg');
+        const imageUrl = bikeModel ? bikeModel.image : require('../assets/Mottu 110i.jpg'); // Certifique-se de que esta imagem existe ou ajuste o caminho
 
         return (
             <TouchableOpacity
@@ -164,6 +200,7 @@ function MotosScreen({ navigation, route }) {
                         </Text>
                     </View>
                 </View>
+                {/* REMOVIDO: Botão de Excluir dentro do card. Será movido para o modal. */}
             </TouchableOpacity>
         );
     };
@@ -173,11 +210,11 @@ function MotosScreen({ navigation, route }) {
             <View style={MotosStyles.container}>
                 <View style={MotosStyles.headerContainer}>
                     <Text style={MotosStyles.headerTitle}>Frota de Motos</Text>
+                    {/* Botão "Pátio Mapa" removido daqui, se ainda estivesse */}
                     <TouchableOpacity
                         style={MotosStyles.manageLocationsButton}
                         onPress={() => navigation.navigate('GerenciarLocalizacoes')}
                     >
-                        {/* <MaterialIcons name="location-on" size={24} color={Colors.mottuGreen} /> */}
                         <Text style={MotosStyles.manageLocationsButtonText}>Localizações</Text>
                     </TouchableOpacity>
                 </View>
@@ -192,12 +229,10 @@ function MotosScreen({ navigation, route }) {
                         autoCapitalize="characters"
                     />
                     <TouchableOpacity style={MotosStyles.filterButtonIcon} onPress={openFilterModal}>
-                        {/* <MaterialIcons name="filter-list" size={28} color={Colors.mottuDark} /> */}
                         <Text style={MotosStyles.filterButtonIconText}>Filtros</Text>
                     </TouchableOpacity>
                 </View>
 
-                {/* Exibição dos filtros ativos (incluindo localização) */}
                 <View style={MotosStyles.activeFiltersContainer}>
                     {currentStatusFilter !== 'Todos' && (
                         <View style={MotosStyles.activeFilterChip}>
@@ -215,7 +250,6 @@ function MotosScreen({ navigation, route }) {
                             </TouchableOpacity>
                         </View>
                     )}
-                    {/* NOVO: Chip para o filtro de localização ativo */}
                     {currentLocationFilter !== 'Todos' && (
                         <View style={MotosStyles.activeFilterChip}>
                             <Text style={MotosStyles.activeFilterChipText}>{currentLocationFilter}</Text>
@@ -224,12 +258,10 @@ function MotosScreen({ navigation, route }) {
                             </TouchableOpacity>
                         </View>
                     )}
-                    {/* Atualiza a mensagem "noFiltersText" para considerar o filtro de localização também */}
                     {(currentStatusFilter === 'Todos' && currentModelFilter === 'Todos' && currentLocationFilter === 'Todos' && searchText.trim() === '') && (
                         <Text style={MotosStyles.noFiltersText}>Todos os filtros desativados.</Text>
                     )}
                 </View>
-
 
                 <FlatList
                     data={getFilteredAndSortedMotorcycles()}
@@ -246,6 +278,7 @@ function MotosScreen({ navigation, route }) {
                         />
                     }
                 />
+
                 <TouchableOpacity
                     style={MotosStyles.fab}
                     onPress={() => navigation.navigate('AdicionarMoto')}
@@ -259,6 +292,7 @@ function MotosScreen({ navigation, route }) {
                 onClose={closeEditModal}
                 motorcycle={selectedMotorcycle}
                 onSave={handleUpdateMotorcycle}
+                onDelete={handleDeleteMotorcycle}
             />
 
             <FilterModal
@@ -267,7 +301,7 @@ function MotosScreen({ navigation, route }) {
                 onApplyFilters={handleApplyFilters}
                 currentStatusFilter={currentStatusFilter}
                 currentModelFilter={currentModelFilter}
-                currentLocationFilter={currentLocationFilter} // NOVO: Passando o filtro de localização
+                currentLocationFilter={currentLocationFilter}
             />
         </SafeAreaView>
     );

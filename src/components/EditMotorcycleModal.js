@@ -1,109 +1,90 @@
+// src/components/EditMotorcycleModal.js
 import React, { useState, useEffect } from 'react';
 import {
     Modal,
     View,
     Text,
-    TouchableOpacity,
     TextInput,
+    TouchableOpacity,
     StyleSheet,
+    ScrollView,
+    Image,
     KeyboardAvoidingView,
     Platform,
-    Image,
-    Alert, // Para exibir alertas
+    Alert, // Importar Alert
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Para carregar e salvar localizações
-
-import { Colors } from '../style/Colors';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Para carregar localizações
+import { Colors } from '../style/Colors'; // Suas cores
 import { BIKE_MODELS } from '../config/bikeModels';
 
-const STATUS_OPTIONS = ['Disponível', 'Em Manutenção', 'Alugada', 'Aguardando Revisão'];
-const LOCATIONS_STORAGE_KEY = '@mottuApp:locations'; // Chave para as localizações
+const LOCATIONS_STORAGE_KEY = '@mottuApp:locations';
 
-function EditMotorcycleModal({ visible, onClose, motorcycle, onSave }) {
-    const [currentStatus, setCurrentStatus] = useState(motorcycle ? motorcycle.status : STATUS_OPTIONS[0]);
-    const [currentLocation, setCurrentLocation] = useState(motorcycle ? motorcycle.location : '');
-    const [locationError, setLocationError] = useState('');
-    const [availableLocations, setAvailableLocations] = useState([]); 
+function EditMotorcycleModal({ visible, onClose, motorcycle, onSave, onDelete }) {
+    const [editedStatus, setEditedStatus] = useState('');
+    const [editedLocation, setEditedLocation] = useState('');
+    const [availableLocations, setAvailableLocations] = useState([]);
+    const [isCustomLocation, setIsCustomLocation] = useState(false); // Para alternar entre Picker e TextInput
 
     useEffect(() => {
         if (motorcycle) {
-            setCurrentStatus(motorcycle.status);
-            setCurrentLocation(motorcycle.location);
-            setLocationError('');
+            setEditedStatus(motorcycle.status);
+            setEditedLocation(motorcycle.location || '');
+            // Verifica se a localização da moto já existe nas predefinidas
+            // se não existir, assume que é uma localização customizada
+            checkAndSetCustomLocation(motorcycle.location);
         }
+        loadLocations();
     }, [motorcycle]);
 
-
-    useEffect(() => {
-        const loadAvailableLocations = async () => {
-            try {
-                const storedLocations = await AsyncStorage.getItem(LOCATIONS_STORAGE_KEY);
-                if (storedLocations) {
-                    setAvailableLocations(JSON.parse(storedLocations));
-                } else {
-                    setAvailableLocations([]);
-                }
-            } catch (error) {
-                console.error('Erro ao carregar localizações para o modal:', error);
-            }
-        };
-        if (visible) { // Carrega apenas quando o modal está visível
-            loadAvailableLocations();
-        }
-    }, [visible]);
-
-
-    const bikeModel = BIKE_MODELS.find(model => model.id === motorcycle?.modelId);
-    const imageUrl = bikeModel ? bikeModel.image : require('../assets/Mottu 110i.jpg');
-
-    const validateLocation = (text) => {
-        setCurrentLocation(text);
-        if (text.trim().length < 3 && text.trim().length > 0) { 
-            setLocationError('A localização deve ter pelo menos 3 caracteres.');
-        } else {
-            setLocationError('');
+    const loadLocations = async () => {
+        try {
+            const storedLocations = await AsyncStorage.getItem(LOCATIONS_STORAGE_KEY);
+            const locations = storedLocations ? JSON.parse(storedLocations) : [];
+            setAvailableLocations(locations);
+        } catch (error) {
+            console.error('Erro ao carregar localizações:', error);
         }
     };
 
-    const handleSave = async () => { // Função agora é assíncrona
-        if (currentLocation.trim().length < 3) {
-            setLocationError('A localização deve ter pelo menos 3 caracteres.');
+    const checkAndSetCustomLocation = async (location) => {
+        if (!location) { // Se não tiver localização definida, não é customizada
+            setIsCustomLocation(false);
             return;
         }
-        if (currentStatus === 'Selecione um status') {
-            Alert.alert('Erro', 'Por favor, selecione um status válido.');
-            return;
+        try {
+            const storedLocations = await AsyncStorage.getItem(LOCATIONS_STORAGE_KEY);
+            const locations = storedLocations ? JSON.parse(storedLocations) : [];
+            const exists = locations.some(loc => loc.name === location);
+            setIsCustomLocation(!exists);
+        } catch (error) {
+            console.error('Erro ao verificar localização customizada:', error);
+            setIsCustomLocation(false); // Fallback
         }
+    };
 
-
-        const trimmedLocation = currentLocation.trim();
-        const locationExists = availableLocations.some(loc => loc.name.toLowerCase() === trimmedLocation.toLowerCase());
-
-        if (trimmedLocation !== '' && !locationExists) {
-            const newLocation = {
-                id: Date.now().toString(),
-                name: trimmedLocation,
-            };
-            try {
-                const updatedLocations = [...availableLocations, newLocation];
-                await AsyncStorage.setItem(LOCATIONS_STORAGE_KEY, JSON.stringify(updatedLocations));
-                setAvailableLocations(updatedLocations); // Atualiza a lista de locais no modal
-            } catch (error) {
-                console.error('Erro ao salvar nova localização do modal:', error);
-                Alert.alert('Erro', 'Não foi possível salvar a nova localização.');
-                return; // Impede o salvamento da moto se a localização não puder ser salva
-            }
-        }
-
+    const handleSave = () => {
+        if (!motorcycle) return;
         onSave(motorcycle.id, {
-            status: currentStatus,
-            location: trimmedLocation, // Usa a localização validada/adicionada
+            status: editedStatus,
+            location: editedLocation,
         });
-        onClose();
+        // Não fechamos o modal aqui, onSave (em MotosScreen) já fará isso após a atualização
     };
 
-    if (!motorcycle) return null;
+    // NOVO: Função para lidar com a exclusão (chama a prop onDelete)
+    const handleDelete = () => {
+        if (!motorcycle) return;
+        onDelete(motorcycle.id); // Chama a função de exclusão passada por prop
+    };
+
+    // Imagem da moto no modal (reutilizando a lógica da MotosScreen)
+    const getBikeImage = () => {
+        if (!motorcycle) return require('../assets/Mottu 110i.jpg'); // Imagem padrão
+        const bikeModel = BIKE_MODELS.find(model => model.id === motorcycle.modelId);
+        return bikeModel ? bikeModel.image : require('../assets/Mottu 110i.jpg');
+    };
+
 
     return (
         <Modal
@@ -121,89 +102,110 @@ function EditMotorcycleModal({ visible, onClose, motorcycle, onSave }) {
 
                     <View style={modalStyles.imageContainer}>
                         <Image
-                            source={imageUrl}
+                            source={getBikeImage()}
                             style={modalStyles.motorcycleImage}
-                            resizeMode="contain"
+                            resizeMode="cover"
                         />
                     </View>
 
-                    <Text style={modalStyles.motoInfoText}>Modelo: {motorcycle.model}</Text>
-                    <Text style={modalStyles.motoInfoText}>Placa: {motorcycle.licensePlate}</Text>
+                    <Text style={modalStyles.label}>Modelo: {motorcycle?.model}</Text>
+                    <Text style={modalStyles.label}>Placa: {motorcycle?.licensePlate}</Text>
 
                     <Text style={modalStyles.label}>Status:</Text>
                     <View style={modalStyles.pickerContainer}>
                         <Picker
-                            selectedValue={currentStatus}
-                            onValueChange={(itemValue) => setCurrentStatus(itemValue)}
+                            selectedValue={editedStatus}
+                            onValueChange={(itemValue) => setEditedStatus(itemValue)}
                             style={modalStyles.picker}
                             itemStyle={modalStyles.pickerItem}
+                            mode="dropdown"
                         >
-                            {STATUS_OPTIONS.map((opt, index) => (
-                                <Picker.Item key={index} label={opt} value={opt} />
-                            ))}
+                            <Picker.Item label="Disponível" value="Disponível" />
+                            <Picker.Item label="Em Manutenção" value="Em Manutenção" />
+                            <Picker.Item label="Alugada" value="Alugada" />
+                            <Picker.Item label="Aguardando Revisão" value="Aguardando Revisão" />
                         </Picker>
                     </View>
 
                     <Text style={modalStyles.label}>Localização:</Text>
-                    {/* Picker para localizações pré-definidas */}
-                    {availableLocations.length > 0 && (
-                        <View style={modalStyles.pickerContainer}>
-                            <Picker
-                                selectedValue={currentLocation}
-                                onValueChange={(itemValue) => setCurrentLocation(itemValue)}
-                                style={modalStyles.picker}
-                                itemStyle={modalStyles.pickerItem}
-                            >
-                                <Picker.Item label="-- Selecione ou digite --" value="" />
-                                {availableLocations.map(loc => (
-                                    <Picker.Item key={loc.id} label={loc.name} value={loc.name} />
-                                ))}
-                            </Picker>
-                        </View>
+                    <View style={modalStyles.pickerContainer}>
+                        <Picker
+                            selectedValue={editedLocation}
+                            onValueChange={(itemValue) => {
+                                if (itemValue === "custom") {
+                                    setIsCustomLocation(true);
+                                    setEditedLocation(''); // Limpa para nova entrada
+                                } else {
+                                    setIsCustomLocation(false);
+                                    setEditedLocation(itemValue);
+                                }
+                            }}
+                            style={modalStyles.picker}
+                            itemStyle={modalStyles.pickerItem}
+                            mode="dropdown"
+                        >
+                            <Picker.Item label="-- Selecione ou digite --" value="" />
+                            {availableLocations.map((loc, index) => (
+                                <Picker.Item key={index} label={loc.name} value={loc.name} />
+                            ))}
+                            <Picker.Item label="Adicionar nova localização..." value="custom" />
+                        </Picker>
+                    </View>
+
+                    {isCustomLocation && (
+                        <TextInput
+                            style={modalStyles.input}
+                            placeholder="Nova Localização (Ex: Pátio A vaga 52)"
+                            placeholderTextColor={Colors.mottuLightGray}
+                            value={editedLocation}
+                            onChangeText={setEditedLocation}
+                            autoCapitalize="words"
+                        />
                     )}
-                    {/* Campo de texto para digitar, se necessário ou se não houver opções */}
-                    <TextInput
-                        style={[modalStyles.input, locationError ? modalStyles.inputError : {}]}
-                        placeholder="Digite ou selecione a localização..."
-                        placeholderTextColor={Colors.mottuLightGray}
-                        value={currentLocation}
-                        onChangeText={validateLocation}
-                    />
-                    {locationError ? <Text style={modalStyles.errorText}>{locationError}</Text> : null}
+                    {/* Se a localização atual da moto não estiver nas predefinidas e não for customizada, mostra o input */}
+                    {!isCustomLocation && motorcycle?.location && !availableLocations.some(loc => loc.name === motorcycle.location) && (
+                        <TextInput
+                            style={modalStyles.input}
+                            value={motorcycle.location}
+                            editable={false} // Não editável, apenas exibido
+                            placeholderTextColor={Colors.mottuLightGray}
+                        />
+                    )}
+
 
                     <View style={modalStyles.buttonContainer}>
-                        <TouchableOpacity
-                            style={[modalStyles.button, modalStyles.buttonClose]}
-                            onPress={onClose}
-                        >
-                            <Text style={modalStyles.textStyle}>Cancelar</Text>
+                        <TouchableOpacity style={modalStyles.cancelButton} onPress={onClose}>
+                            <Text style={modalStyles.cancelButtonText}>Cancelar</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[modalStyles.button, modalStyles.buttonSave]}
-                            onPress={handleSave}
-                        >
-                            <Text style={modalStyles.textStyle}>Salvar</Text>
+                        <TouchableOpacity style={modalStyles.saveButton} onPress={handleSave}>
+                            <Text style={modalStyles.saveButtonText}>Salvar</Text>
                         </TouchableOpacity>
                     </View>
+
+                    {/* NOVO: Botão de Excluir */}
+                    <TouchableOpacity style={modalStyles.deleteButton} onPress={handleDelete}>
+                        <Text style={modalStyles.deleteButtonText}>Excluir Moto</Text>
+                    </TouchableOpacity>
+
                 </View>
             </KeyboardAvoidingView>
         </Modal>
     );
 }
 
-
+// Estilos para o EditMotorcycleModal
 const modalStyles = StyleSheet.create({
     centeredView: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.7)',
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
     },
     modalView: {
-        margin: 20,
+        width: '90%',
         backgroundColor: Colors.mottuWhite,
         borderRadius: 20,
-        padding: 35,
+        padding: 25,
         alignItems: 'center',
         shadowColor: '#000',
         shadowOffset: {
@@ -213,7 +215,6 @@ const modalStyles = StyleSheet.create({
         shadowOpacity: 0.25,
         shadowRadius: 4,
         elevation: 5,
-        width: '90%',
     },
     modalTitle: {
         fontSize: 24,
@@ -222,99 +223,103 @@ const modalStyles = StyleSheet.create({
         marginBottom: 20,
     },
     imageContainer: {
-        width: '80%',
-        height: 120,
-        marginBottom: 15,
-        borderRadius: 8,
+        width: '100%',
+        height: 150,
+        borderRadius: 10,
         overflow: 'hidden',
-        backgroundColor: Colors.mottuLightGray,
+        marginBottom: 15,
+        backgroundColor: Colors.mottuGray,
         justifyContent: 'center',
         alignItems: 'center',
     },
     motorcycleImage: {
         width: '100%',
         height: '100%',
-    },
-    motoInfoText: {
-        fontSize: 16,
-        color: Colors.mottuDark,
-        marginBottom: 5,
-        textAlign: 'left',
-        width: '100%',
+        resizeMode: 'cover',
     },
     label: {
         fontSize: 16,
         color: Colors.mottuDark,
-        marginBottom: 5,
-        fontWeight: 'bold',
         alignSelf: 'flex-start',
-        marginTop: 15,
+        marginBottom: 5,
+        marginTop: 10,
+        fontWeight: '600',
     },
     pickerContainer: {
         width: '100%',
-        backgroundColor: Colors.mottuWhite,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: Colors.mottuLightGray,
-        marginBottom: 15, 
-        overflow: 'hidden',
+        backgroundColor: Colors.mottuLightGray,
+        borderRadius: 10,
+        marginBottom: 15,
+        overflow: 'hidden', // Para garantir que o Picker respeite o borderRadius
     },
     picker: {
         width: '100%',
-        color: Colors.mottuDark,
-        height: 50,
+        color: Colors.mottuDark, // Cor do texto selecionado
     },
     pickerItem: {
-        color: Colors.mottuDark,
+        color: Colors.mottuDark, // Cor do texto das opções no iOS
     },
     input: {
         width: '100%',
         height: 50,
-        backgroundColor: Colors.mottuWhite,
-        borderRadius: 8,
+        backgroundColor: Colors.mottuLightGray,
+        borderRadius: 10,
         paddingHorizontal: 15,
-        marginBottom: 15,
-        borderWidth: 1,
-        borderColor: Colors.mottuLightGray,
-        color: Colors.mottuDark,
         fontSize: 16,
-    },
-    inputError: {
-        borderColor: Colors.mottuError,
-        borderWidth: 2,
-    },
-    errorText: {
-        color: Colors.mottuError,
-        fontSize: 12,
-        marginBottom: 10,
-        alignSelf: 'flex-start',
-        marginLeft: 5,
+        color: Colors.mottuDark,
+        marginBottom: 15,
     },
     buttonContainer: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'space-around',
         width: '100%',
         marginTop: 20,
     },
-    button: {
+    cancelButton: {
+        backgroundColor: Colors.mottuGray,
         borderRadius: 10,
-        padding: 10,
-        elevation: 2,
-        flex: 1,
-        marginHorizontal: 5,
+        paddingVertical: 12,
+        paddingHorizontal: 25,
+        minWidth: 120,
         alignItems: 'center',
     },
-    buttonClose: {
-        backgroundColor: Colors.mottuLightGray,
-    },
-    buttonSave: {
-        backgroundColor: Colors.mottuGreen,
-    },
-    textStyle: {
+    cancelButtonText: {
         color: Colors.mottuDark,
-        fontWeight: 'bold',
-        textAlign: 'center',
         fontSize: 16,
+        fontWeight: 'bold',
+    },
+    saveButton: {
+        backgroundColor: Colors.mottuGreen,
+        borderRadius: 10,
+        paddingVertical: 12,
+        paddingHorizontal: 25,
+        minWidth: 120,
+        alignItems: 'center',
+    },
+    saveButtonText: {
+        color: Colors.mottuDark,
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    // NOVO: Estilos para o botão de exclusão no modal
+    deleteButton: {
+        backgroundColor: Colors.mottuRed, // Cor vermelha para exclusão
+        borderRadius: 10,
+        paddingVertical: 12,
+        paddingHorizontal: 25,
+        width: '100%', // Largura total
+        alignItems: 'center',
+        marginTop: 15, // Espaçamento superior
+        shadowColor: Colors.mottuDark,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
+        elevation: 5,
+    },
+    deleteButtonText: {
+        color: Colors.mottuWhite,
+        fontSize: 16,
+        fontWeight: 'bold',
     },
 });
 
