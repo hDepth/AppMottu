@@ -1,78 +1,116 @@
-// src/components/EditMotorcycleModal.js
 import React, { useState, useEffect } from 'react';
 import {
     Modal,
     View,
     Text,
     TouchableOpacity,
-    TextInput, // Para a localização
+    TextInput,
     StyleSheet,
     KeyboardAvoidingView,
     Platform,
-    Image, // Para exibir a imagem da moto dentro do modal
+    Image,
+    Alert, // Para exibir alertas
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Para carregar e salvar localizações
 
-import { Colors } from '../style/Colors'; // Seu caminho de estilo
-import { BIKE_MODELS } from '../config/bikeModels'; // Importar os modelos de moto
+import { Colors } from '../style/Colors';
+import { BIKE_MODELS } from '../config/bikeModels';
 
 const STATUS_OPTIONS = ['Disponível', 'Em Manutenção', 'Alugada', 'Aguardando Revisão'];
+const LOCATIONS_STORAGE_KEY = '@mottuApp:locations'; // Chave para as localizações
 
 function EditMotorcycleModal({ visible, onClose, motorcycle, onSave }) {
-    // Usamos estados locais para os valores que podem ser editados no modal
     const [currentStatus, setCurrentStatus] = useState(motorcycle ? motorcycle.status : STATUS_OPTIONS[0]);
     const [currentLocation, setCurrentLocation] = useState(motorcycle ? motorcycle.location : '');
     const [locationError, setLocationError] = useState('');
+    const [availableLocations, setAvailableLocations] = useState([]); 
 
-    // Efeitos para atualizar o estado local quando a prop 'motorcycle' muda (ao abrir o modal para outra moto)
     useEffect(() => {
         if (motorcycle) {
             setCurrentStatus(motorcycle.status);
             setCurrentLocation(motorcycle.location);
-            setLocationError(''); // Limpa erros ao reabrir
+            setLocationError('');
         }
     }, [motorcycle]);
 
-    // Encontrar a imagem do modelo para exibição no modal
+
+    useEffect(() => {
+        const loadAvailableLocations = async () => {
+            try {
+                const storedLocations = await AsyncStorage.getItem(LOCATIONS_STORAGE_KEY);
+                if (storedLocations) {
+                    setAvailableLocations(JSON.parse(storedLocations));
+                } else {
+                    setAvailableLocations([]);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar localizações para o modal:', error);
+            }
+        };
+        if (visible) { // Carrega apenas quando o modal está visível
+            loadAvailableLocations();
+        }
+    }, [visible]);
+
+
     const bikeModel = BIKE_MODELS.find(model => model.id === motorcycle?.modelId);
-    const imageUrl = bikeModel ? bikeModel.image : require('../assets/Mottu 110i.jpg'); // Imagem padrão
+    const imageUrl = bikeModel ? bikeModel.image : require('../assets/Mottu 110i.jpg');
 
     const validateLocation = (text) => {
         setCurrentLocation(text);
-        if (text.trim().length < 5 && text.trim().length > 0) {
-            setLocationError('A localização deve ter pelo menos 5 caracteres.');
+        if (text.trim().length < 3 && text.trim().length > 0) { 
+            setLocationError('A localização deve ter pelo menos 3 caracteres.');
         } else {
             setLocationError('');
         }
     };
 
-    const handleSave = () => {
-        if (currentLocation.trim().length < 5) {
-            setLocationError('A localização deve ter pelo menos 5 caracteres.');
+    const handleSave = async () => { // Função agora é assíncrona
+        if (currentLocation.trim().length < 3) {
+            setLocationError('A localização deve ter pelo menos 3 caracteres.');
             return;
         }
-        if (currentStatus === 'Selecione um status') { // Se essa opção estiver visível, validar
+        if (currentStatus === 'Selecione um status') {
             Alert.alert('Erro', 'Por favor, selecione um status válido.');
             return;
         }
 
-        // Chamamos a função onSave passada pela MotosScreen
-        // Passamos o ID da moto e os valores atualizados
+
+        const trimmedLocation = currentLocation.trim();
+        const locationExists = availableLocations.some(loc => loc.name.toLowerCase() === trimmedLocation.toLowerCase());
+
+        if (trimmedLocation !== '' && !locationExists) {
+            const newLocation = {
+                id: Date.now().toString(),
+                name: trimmedLocation,
+            };
+            try {
+                const updatedLocations = [...availableLocations, newLocation];
+                await AsyncStorage.setItem(LOCATIONS_STORAGE_KEY, JSON.stringify(updatedLocations));
+                setAvailableLocations(updatedLocations); // Atualiza a lista de locais no modal
+            } catch (error) {
+                console.error('Erro ao salvar nova localização do modal:', error);
+                Alert.alert('Erro', 'Não foi possível salvar a nova localização.');
+                return; // Impede o salvamento da moto se a localização não puder ser salva
+            }
+        }
+
         onSave(motorcycle.id, {
             status: currentStatus,
-            location: currentLocation,
+            location: trimmedLocation, // Usa a localização validada/adicionada
         });
-        onClose(); // Fechar o modal
+        onClose();
     };
 
-    if (!motorcycle) return null; // Não renderiza nada se não houver moto
+    if (!motorcycle) return null;
 
     return (
         <Modal
             animationType="slide"
             transparent={true}
             visible={visible}
-            onRequestClose={onClose} // Garante que o modal pode ser fechado pelo botão de voltar do Android
+            onRequestClose={onClose}
         >
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -107,9 +145,26 @@ function EditMotorcycleModal({ visible, onClose, motorcycle, onSave }) {
                     </View>
 
                     <Text style={modalStyles.label}>Localização:</Text>
+                    {/* Picker para localizações pré-definidas */}
+                    {availableLocations.length > 0 && (
+                        <View style={modalStyles.pickerContainer}>
+                            <Picker
+                                selectedValue={currentLocation}
+                                onValueChange={(itemValue) => setCurrentLocation(itemValue)}
+                                style={modalStyles.picker}
+                                itemStyle={modalStyles.pickerItem}
+                            >
+                                <Picker.Item label="-- Selecione ou digite --" value="" />
+                                {availableLocations.map(loc => (
+                                    <Picker.Item key={loc.id} label={loc.name} value={loc.name} />
+                                ))}
+                            </Picker>
+                        </View>
+                    )}
+                    {/* Campo de texto para digitar, se necessário ou se não houver opções */}
                     <TextInput
                         style={[modalStyles.input, locationError ? modalStyles.inputError : {}]}
-                        placeholder="Localização da moto"
+                        placeholder="Digite ou selecione a localização..."
                         placeholderTextColor={Colors.mottuLightGray}
                         value={currentLocation}
                         onChangeText={validateLocation}
@@ -136,13 +191,13 @@ function EditMotorcycleModal({ visible, onClose, motorcycle, onSave }) {
     );
 }
 
-// Estilos para o modal (você pode colocar em um arquivo de estilo separado se preferir, mas para começar, aqui está ok)
+
 const modalStyles = StyleSheet.create({
     centeredView: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.7)', // Fundo escuro semi-transparente
+        backgroundColor: 'rgba(0,0,0,0.7)',
     },
     modalView: {
         margin: 20,
@@ -158,7 +213,7 @@ const modalStyles = StyleSheet.create({
         shadowOpacity: 0.25,
         shadowRadius: 4,
         elevation: 5,
-        width: '90%', // Largura responsiva
+        width: '90%',
     },
     modalTitle: {
         fontSize: 24,
@@ -201,7 +256,7 @@ const modalStyles = StyleSheet.create({
         borderRadius: 8,
         borderWidth: 1,
         borderColor: Colors.mottuLightGray,
-        marginBottom: 15,
+        marginBottom: 15, 
         overflow: 'hidden',
     },
     picker: {

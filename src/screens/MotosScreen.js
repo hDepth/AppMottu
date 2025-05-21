@@ -14,31 +14,26 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 // Se você tem MaterialIcons, pode usar:
-// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons'; // Para o ícone de engrenagem/localização
 
 import MotosStyles from '../style/MotosScreen';
 import { Colors } from '../style/Colors';
 import { BIKE_MODELS } from '../config/bikeModels';
 import EditMotorcycleModal from '../components/EditMotorcycleModal';
-import FilterModal from '../components/FilterModal'; // <-- IMPORTAR O NOVO MODAL DE FILTRO
+import FilterModal from '../components/FilterModal';
 
 const MOTOS_STORAGE_KEY = '@mottuApp:motorcycles';
-
-// Não precisamos mais de STATUS_FILTERS aqui, pois ele estará no FilterModal
 
 function MotosScreen({ navigation, route }) {
     const [motorcycles, setMotorcycles] = useState([]);
     const [refreshing, setRefreshing] = useState(false);
 
-    // Estados para o modal de filtros
     const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
     const [currentStatusFilter, setCurrentStatusFilter] = useState('Todos');
     const [currentModelFilter, setCurrentModelFilter] = useState('Todos');
 
-    // Estado para a barra de pesquisa
     const [searchText, setSearchText] = useState('');
 
-    // Estados para o modal de edição
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
     const [selectedMotorcycle, setSelectedMotorcycle] = useState(null);
 
@@ -84,21 +79,17 @@ function MotosScreen({ navigation, route }) {
         }, [])
     );
 
-    // FUNÇÃO ATUALIZADA PARA USAR OS FILTROS DO MODAL
     const getFilteredAndSortedMotorcycles = () => {
         let filtered = motorcycles;
 
-        // 1. Filtrar por Status
         if (currentStatusFilter !== 'Todos') {
             filtered = filtered.filter(moto => moto.status === currentStatusFilter);
         }
 
-        // 2. Filtrar por Modelo
         if (currentModelFilter !== 'Todos') {
             filtered = filtered.filter(moto => moto.modelId === currentModelFilter);
         }
 
-        // 3. Filtrar por Texto de Pesquisa (Placa)
         if (searchText.trim() !== '') {
             const lowerCaseSearchText = searchText.trim().toLowerCase();
             filtered = filtered.filter(moto =>
@@ -106,7 +97,6 @@ function MotosScreen({ navigation, route }) {
             );
         }
 
-        // 4. Ordenar por Placa
         filtered.sort((a, b) => a.licensePlate.localeCompare(b.licensePlate));
 
         return filtered;
@@ -122,7 +112,6 @@ function MotosScreen({ navigation, route }) {
         setSelectedMotorcycle(null);
     };
 
-    // Funções para abrir/fechar e aplicar filtros do FilterModal
     const openFilterModal = () => setIsFilterModalVisible(true);
     const closeFilterModal = () => setIsFilterModalVisible(false);
     const handleApplyFilters = (status, model) => {
@@ -169,7 +158,18 @@ function MotosScreen({ navigation, route }) {
     return (
         <SafeAreaView style={MotosStyles.safeArea}>
             <View style={MotosStyles.container}>
-                <Text style={MotosStyles.headerTitle}>Frota de Motos</Text>
+                {/* CABEÇALHO DA TELA COM BOTÃO DE GERENCIAR LOCALIZAÇÕES */}
+                <View style={MotosStyles.headerContainer}>
+                    <Text style={MotosStyles.headerTitle}>Frota de Motos</Text>
+                    <TouchableOpacity
+                        style={MotosStyles.manageLocationsButton}
+                        onPress={() => navigation.navigate('GerenciarLocalizacoes')}
+                    >
+                        {/* Se tiver MaterialIcons instalado, pode usar: */}
+                        {/* <MaterialIcons name="location-on" size={24} color={Colors.mottuGreen} /> */}
+                        <Text style={MotosStyles.manageLocationsButtonText}>Localizações</Text>
+                    </TouchableOpacity>
+                </View>
 
                 {/* Contêiner da Barra de Pesquisa e Botão de Filtro */}
                 <View style={MotosStyles.searchAndFilterContainer}>
@@ -181,15 +181,13 @@ function MotosScreen({ navigation, route }) {
                         onChangeText={setSearchText}
                         autoCapitalize="characters"
                     />
-                    {/* Botão para abrir o modal de filtros */}
                     <TouchableOpacity style={MotosStyles.filterButtonIcon} onPress={openFilterModal}>
-                        {/* Se tiver MaterialIcons instalado, pode usar: */}
                         {/* <MaterialIcons name="filter-list" size={28} color={Colors.mottuDark} /> */}
                         <Text style={MotosStyles.filterButtonIconText}>Filtros</Text>
                     </TouchableOpacity>
                 </View>
 
-                {/* Exibição dos filtros ativos (opcional, pode ser chips menores) */}
+                {/* Exibição dos filtros ativos */}
                 <View style={MotosStyles.activeFiltersContainer}>
                     {currentStatusFilter !== 'Todos' && (
                         <View style={MotosStyles.activeFilterChip}>
@@ -206,12 +204,6 @@ function MotosScreen({ navigation, route }) {
                                 <Text style={MotosStyles.removeFilterText}>x</Text>
                             </TouchableOpacity>
                         </View>
-                    )}
-                    {/* Exibir mensagem "Filtros Aplicados" se houver algum filtro ativo e nenhum chip for exibido */}
-                    {(currentStatusFilter !== 'Todos' || currentModelFilter !== 'Todos') && (
-                        currentStatusFilter === 'Todos' && currentModelFilter === 'Todos' && ( // Se todos estiverem 'Todos', mas havia algo antes de 'Limpar'
-                            <Text style={MotosStyles.filtersAppliedText}>Filtros aplicados</Text>
-                        )
                     )}
                     {currentStatusFilter === 'Todos' && currentModelFilter === 'Todos' && searchText.trim() === '' && (
                         <Text style={MotosStyles.noFiltersText}>Todos os filtros desativados.</Text>
@@ -249,7 +241,6 @@ function MotosScreen({ navigation, route }) {
                 onSave={handleUpdateMotorcycle}
             />
 
-            {/* O NOVO MODAL DE FILTROS É RENDERIZADO AQUI */}
             <FilterModal
                 visible={isFilterModalVisible}
                 onClose={closeFilterModal}

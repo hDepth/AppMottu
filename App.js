@@ -5,7 +5,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AuthScreen from './src/screens/AuthScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import MotosScreen from './src/screens/MotosScreen';
-import AddMotorcycleScreen from './src/screens/AddMotorcycleScreen'; // Importa a nova tela
+import AddMotorcycleScreen from './src/screens/AddMotorcycleScreen';
+import ManageLocationsScreen from './src/screens/ManageLocationsScreen';
 import { Colors } from './src/style/Colors';
 
 
@@ -47,6 +48,16 @@ export default function App() {
                         headerStyle: { backgroundColor: Colors.mottuGreen },
                         headerTintColor: Colors.mottuDark,
                         headerTitleStyle: { fontWeight: 'bold' },
+                    }}
+                />
+                <Stack.Screen
+                    name="GerenciarLocalizacoes" 
+                    component={ManageLocationsScreen}
+                    options={{
+                        headerTitle: 'Gerenciar Localizações',
+                        headerStyle: { backgroundColor: Colors.mottuDark },
+                        headerTintColor: Colors.mottuGreen,
+                        headerBackTitleVisible: false,
                     }}
                 />
             </Stack.Navigator>
