@@ -19,7 +19,7 @@ function HomeScreen({ navigation }) {
 
             <TouchableOpacity
                 style={HomeStyles.button} // Pode usar o mesmo estilo de botão por enquanto
-                onPress={() => alert('Funcionalidade de Mapa será implementada aqui.')}
+                onPress={() => navigation.navigate('MapeamentoPatio')}
             >
                 <Text style={HomeStyles.buttonText}>Ver Motos no Mapa</Text>
             </TouchableOpacity>
