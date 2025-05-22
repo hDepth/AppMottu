@@ -1,31 +1,4 @@
 {
-  "compilerOptions": {
-    "allowJs": true,
-    "esModuleInterop": true,
-    "jsx": "react-native",
-    "lib": ["es2017"],
-    "moduleResolution": "node",
-    "noEmit": true,
-    "strict": true,
-    "target": "esnext",
-    "skipLibCheck": true,
-    "resolveJsonModule": true,
-    "forceConsistentCasingInFileNames": true,
-    "baseUrl": ".",
-    "paths": {
-      "*": ["node_modules/*"]
-    }
-  },
-  "include": [
-    "**/*.js",
-    "**/*.jsx",
-    "**/*.ts",
-    "**/*.tsx"
-  ],
-  "exclude": [
-    "node_modules",
-    "babel.config.js",
-    "metro.config.js",
-    "jest.config.js"
-  ]
+  "compilerOptions": {},
+  "extends": "expo/tsconfig.base"
 }
