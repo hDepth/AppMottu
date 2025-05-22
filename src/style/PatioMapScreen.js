@@ -1,69 +1,26 @@
-// src/style/PatioMapScreen.js
 import { StyleSheet } from 'react-native';
-import { Colors } from './Colors'; // Importa as cores da sua paleta
 
-const PatioMapStyles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: Colors.mottuDark,
-    },
+const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingHorizontal: 20,
-        backgroundColor: Colors.mottuDark,
-        paddingTop: 15,
     },
-    headerTitle: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: Colors.mottuGreen,
-        marginBottom: 15,
-        textAlign: 'center',
+    map: {
+        width: '100%', // Ajuste para a largura que deseja, '100%' é comum
+        height: '100%', // Ajuste para a altura que deseja. Flex 1 no container pode gerenciar
     },
-    descriptionText: {
-        fontSize: 16,
-        color: Colors.mottuLightGray,
-        textAlign: 'center',
-        marginBottom: 25,
-        paddingHorizontal: 10,
-    },
-    listContent: {
-        paddingBottom: 20,
-    },
-    locationCard: {
-        backgroundColor: Colors.mottuWhite,
-        borderRadius: 12, // Um pouco mais arredondado
-        padding: 20,
-        marginBottom: 15,
-        alignItems: 'center',
+    loadingOverlay: {
+        ...StyleSheet.absoluteFillObject, // Preenche a tela toda
         justifyContent: 'center',
-        shadowColor: Colors.mottuDark,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-        elevation: 7, // Maior elevação
-        minHeight: 100, // Altura mínima para o cartão
-        borderWidth: 1,
-        borderColor: Colors.mottuLightGray,
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)', // Fundo semi-transparente
+        zIndex: 10,
     },
-    locationName: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        color: Colors.mottuDark,
-        marginBottom: 8,
-        textAlign: 'center',
-    },
-    motorcycleCount: {
-        fontSize: 18,
-        color: Colors.mottuGreen,
-        fontWeight: '600',
-    },
-    emptyListText: {
-        color: Colors.mottuLightGray,
-        textAlign: 'center',
-        marginTop: 50,
-        fontSize: 16,
+    permissionContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
     },
 });
 
-export default PatioMapStyles;
+export default styles;

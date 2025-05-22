@@ -1,120 +1,144 @@
-// src/screens/PatioMapScreen.js
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-    View,
-    Text,
-    FlatList,
-    TouchableOpacity,
-    Alert,
-    RefreshControl,
-    ScrollView,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from '@react-navigation/native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Button, StyleSheet, ActivityIndicator } from 'react-native';
+import MapView, { Marker } from 'react-native-maps'; // Importando MapView e Marker
+import * as Location from 'expo-location'; // Importando expo-location
 
-import PatioMapStyles from '../style/PatioMapScreen'; // Estilos para esta tela
-import { Colors } from '../style/Colors'; // Suas cores
+// Importe seus estilos, como você já tem:
+import styles from '../style/PatioMapScreen';
 
-const MOTOS_STORAGE_KEY = '@mottuApp:motorcycles';
+const PatioMapScreen = () => {
+    // Estado para armazenar as coordenadas geográficas
+    const [location, setLocation] = useState(null);
+    // Estado para o status da permissão de localização
+    const [permissionStatus, setPermissionStatus] = useState(null);
+    // Estado para indicar se o mapa está carregando
+    const [isLoading, setIsLoading] = useState(true);
 
-function PatioMapScreen({ navigation }) {
-    const [locationsData, setLocationsData] = useState([]); // Dados das localizações com contagem de motos
-    const [refreshing, setRefreshing] = useState(false);
+    // UseEffect para solicitar permissão e obter a localização
+    useEffect(() => {
+        (async () => {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            setPermissionStatus(status);
 
-    const loadPatioData = async () => {
-        setRefreshing(true);
-        try {
-            const storedMotos = await AsyncStorage.getItem(MOTOS_STORAGE_KEY);
-            const motos = storedMotos ? JSON.parse(storedMotos) : [];
+            if (status !== 'granted') {
+                console.log('Permissão de localização não concedida!');
+                setIsLoading(false); // Para parar o loading se a permissão não for concedida
+                return;
+            }
 
-            // Agrupar motos por localização
-            const groupedByLocation = motos.reduce((acc, moto) => {
-                const locationName = moto.location || 'Sem Localização'; // Caso a moto não tenha localização
-                if (!acc[locationName]) {
-                    acc[locationName] = {
-                        name: locationName,
-                        count: 0,
-                        motos: [], // Opcional: para passar os detalhes das motos
-                    };
-                }
-                acc[locationName].count++;
-                acc[locationName].motos.push(moto);
-                return acc;
-            }, {});
+            // Se a permissão foi concedida, tente obter a localização
+            try {
+                let currentLocation = await Location.getCurrentPositionAsync({});
+                setLocation(currentLocation.coords);
+                console.log('Localização do usuário:', currentLocation.coords);
+            } catch (error) {
+                console.error('Erro ao obter localização:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        })();
+    }, []);
 
-            // Transformar o objeto em um array para a FlatList
-            const dataArray = Object.values(groupedByLocation).sort((a, b) =>
-                a.name.localeCompare(b.name)
-            );
-
-            setLocationsData(dataArray);
-        } catch (error) {
-            console.error('Erro ao carregar dados do pátio:', error);
-            Alert.alert('Erro', 'Não foi possível carregar o mapa do pátio.');
-        } finally {
-            setRefreshing(false);
+    // Função para solicitar a permissão novamente (se o usuário negou antes)
+    const requestPermission = async () => {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        setPermissionStatus(status);
+        if (status === 'granted') {
+            setIsLoading(true);
+            try {
+                let currentLocation = await Location.getCurrentPositionAsync({});
+                setLocation(currentLocation.coords);
+                console.log('Localização do usuário (após re-solicitação):', currentLocation.coords);
+            } catch (error) {
+                console.error('Erro ao obter localização após re-solicitação:', error);
+            } finally {
+                setIsLoading(false);
+            }
         }
     };
 
-    useFocusEffect(
-        useCallback(() => {
-            loadPatioData();
-        }, [])
-    );
-
-    const handlePressLocation = (locationName) => {
-        // Navegar para a tela de Motos e aplicar o filtro de localização
-        navigation.navigate('Motos', {
-            screen: 'MotosScreen', // Certifique-se de que é o nome da tela principal da pilha
-            params: { initialLocationFilter: locationName },
-        });
-        Alert.alert('Localização', `Você tocou em ${locationName}.`);
-        // Aqui você pode expandir para mostrar as motos dessa localização
-        // ou navegar para uma tela de detalhes já filtrada.
+    // Coordenadas do pátio fixas (Exemplo: São Paulo)
+    // Você pode ajustar isso para a localização real do seu pátio
+    const patioLocation = {
+        latitude: -23.550520,  // Exemplo: Lat de São Paulo
+        longitude: -46.633300, // Exemplo: Lng de São Paulo
+        latitudeDelta: 0.0922, // Zoom padrão
+        longitudeDelta: 0.0421, // Zoom padrão
     };
 
-    const renderLocationCard = ({ item }) => (
-        <TouchableOpacity
-            style={PatioMapStyles.locationCard}
-            onPress={() => handlePressLocation(item.name)}
-        >
-            <Text style={PatioMapStyles.locationName}>{item.name}</Text>
-            <Text style={PatioMapStyles.motorcycleCount}>{item.count} motos</Text>
-        </TouchableOpacity>
-    );
+    // Renderiza o mapa ou mensagens de carregamento/permissão
+    const renderMapContent = () => {
+        if (isLoading) {
+            return (
+                <View style={styles.loadingOverlay}>
+                    <ActivityIndicator size="large" color="#0000ff" />
+                    <Text>Carregando mapa e localização...</Text>
+                </View>
+            );
+        }
+
+        if (permissionStatus !== 'granted') {
+            return (
+                <View style={styles.permissionContainer}>
+                    <Text>Permissão de localização não concedida.</Text>
+                    <Text>Para visualizar o mapa, precisamos da sua localização.</Text>
+                    <Button title="Solicitar Permissão" onPress={requestPermission} />
+                </View>
+            );
+        }
+
+        // Se tiver a localização do usuário, centraliza lá, senão no pátio
+        const initialRegion = location ? {
+            latitude: location.latitude,
+            longitude: location.longitude,
+            latitudeDelta: 0.01, // Um zoom mais próximo para o usuário
+            longitudeDelta: 0.01,
+        } : patioLocation; // Caso não consiga a localização do usuário, usa a do pátio
+
+        return (
+            <MapView
+                style={styles.map}
+                initialRegion={initialRegion}
+                // Você pode usar onRegionChangeComplete se quiser saber a região atual do mapa
+            >
+                {/* Marcador para a localização do usuário (se disponível) */}
+                {location && (
+                    <Marker
+                        coordinate={{ latitude: location.latitude, longitude: location.longitude }}
+                        title="Sua Localização"
+                        description="Você está aqui!"
+                    />
+                )}
+                {/* Marcador para o pátio da Mottu */}
+                <Marker
+                    coordinate={{ latitude: patioLocation.latitude, longitude: patioLocation.longitude }}
+                    title="Pátio da Mottu"
+                    description="Localização principal da frota"
+                    pinColor="blue" // Cor diferente para o marcador do pátio
+                />
+                {/* Aqui você adicionaria marcadores para as motos */}
+                {/* Exemplo de um marcador de moto (você buscará isso do backend) */}
+                {/*
+                <Marker
+                    coordinate={{ latitude: -23.5510, longitude: -46.6340 }}
+                    title="Moto A123"
+                    description="Status: Em pátio"
+                    pinColor="green"
+                />
+                */}
+            </MapView>
+        );
+    };
 
     return (
-        <SafeAreaView style={PatioMapStyles.safeArea}>
-            <View style={PatioMapStyles.container}>
-                <Text style={PatioMapStyles.headerTitle}>Mapeamento do Pátio</Text>
-
-                <Text style={PatioMapStyles.descriptionText}>
-                    Visualize a distribuição das motos pelas zonas do pátio.
-                </Text>
-
-                <FlatList
-                    data={locationsData}
-                    renderItem={renderLocationCard}
-                    keyExtractor={item => item.name}
-                    contentContainerStyle={PatioMapStyles.listContent}
-                    ListEmptyComponent={
-                        <Text style={PatioMapStyles.emptyListText}>
-                            Nenhuma localização com motos cadastrada ainda.
-                        </Text>
-                    }
-                    refreshControl={
-                        <RefreshControl
-                            refreshing={refreshing}
-                            onRefresh={loadPatioData}
-                            tintColor={Colors.mottuGreen}
-                            colors={[Colors.mottuGreen]}
-                        />
-                    }
-                />
-            </View>
-        </SafeAreaView>
+        <View style={styles.container}>
+            {renderMapContent()}
+        </View>
     );
-}
+};
+
+// Seus estilos separados em src/style/PatioMapScreenStyles.js
+// Aqui estão os estilos base que devem estar lá, adaptados
+// Remova o StyleSheet.create daqui, já está importado!
 
 export default PatioMapScreen;
