@@ -29,30 +29,7 @@ Estrutura do Projeto
 O projeto está dividido em duas partes principais:
 
 backend/: Contém o código do servidor Node.js e a lógica de interação com o banco de dados Oracle.
-./: Contém o código do aplicativo React Native (frontend).
-.
-├── backend/
-│   ├── server.js               # Servidor Node.js com rotas da API
-├── src/
-│   ├── assets/                 # Imagens e outros recursos estáticos
-│   ├── components/             # Componentes React Native reutilizáveis
-│   │   ├── EditMotorcycleModal.js
-│   │   └── FilterModal.js
-│   ├── config/                 # Configurações globais (ex: bikeModels.js)
-│   ├── navigation/             # Configuração de navegação (React Navigation)
-│   ├── screens/                # Telas principais do aplicativo
-│   │   ├── AuthScreen.js
-│   │   ├── MotosScreen.js
-│   │   ├── GerenciarLocalizacoesScreen.js (provavelmente)
-│   │   └── AdicionarMotoScreen.js
-│   └── style/                  # Folhas de estilo para as telas e componentes
-│       ├── Colors.js
-│       ├── GlobalStyles.js
-│       ├── MotosScreen.js
-│       └── ...
-├── App.js                      # Ponto de entrada do aplicativo
-├── package.json                # Dependências do frontend
-└── README.md                   # Este arquivo
+
 Configuração do Ambiente
 Para rodar este projeto, você precisará ter o Node.js, npm/yarn, e o ambiente de desenvolvimento para React Native (Expo CLI) instalados. Além disso, a máquina onde o backend roda precisará ter o Oracle Instant Client configurado para que o oracledb possa se conectar ao banco de dados.
 
