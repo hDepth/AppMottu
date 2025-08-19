@@ -21,6 +21,21 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 20,
     },
+    infoBox: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    padding: 15,
+    borderRadius: 10,
+},
+infoText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginBottom: 5,
+}
 });
 
 export default styles;
