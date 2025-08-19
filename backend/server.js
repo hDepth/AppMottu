@@ -121,6 +121,86 @@ app.post('/login', async (req, res) => {
     }
 });
 
+// ----- NOVAS ROTAS PARA PÁTIOS E MOTOS -----
+
+// Rota para buscar os detalhes de um pátio específico
+app.get('/api/yards/:id', async (req, res) => {
+    const { id } = req.params;
+    let connection;
+
+    try {
+        connection = await getConnection();
+        const result = await connection.execute(
+            `SELECT id, name, address, map_type, polygon_geojson FROM YARDS WHERE id = :id`,
+            { id: id },
+            { outFormat: oracledb.OUT_FORMAT_OBJECT } // Retorna objetos JS
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Pátio não encontrado.' });
+        }
+
+        // O Oracle retorna nomes de colunas em MAIÚSCULAS, vamos padronizar para minúsculas
+        const yardData = result.rows[0];
+        const formattedYard = {
+            id: yardData.ID,
+            name: yardData.NAME,
+            address: yardData.ADDRESS,
+            map_type: yardData.MAP_TYPE,
+            polygon_geojson: await yardData.POLYGON_GEOJSON.getData(), // Lendo o CLOB
+        };
+
+        res.status(200).json({ data: formattedYard });
+
+    } catch (err) {
+        console.error('Erro ao buscar pátio:', err);
+        res.status(500).json({ message: 'Erro interno do servidor.' });
+    } finally {
+        if (connection) {
+            try { await connection.close(); } catch (e) { console.error('Erro ao fechar conexão:', e); }
+        }
+    }
+});
+
+// Rota para buscar as motocicletas de um pátio específico
+app.get('/api/motorcycles', async (req, res) => {
+    const { yardId } = req.query; // Pega o yardId da URL, ex: /api/motorcycles?yardId=1
+    if (!yardId) {
+        return res.status(400).json({ message: 'O parâmetro yardId é obrigatório.' });
+    }
+    let connection;
+
+    try {
+        connection = await getConnection();
+        const result = await connection.execute(
+            `SELECT id, plate, model, status, yard_id, last_lat, last_lng FROM MOTORCYCLES WHERE yard_id = :yardId`,
+            { yardId: yardId },
+            { outFormat: oracledb.OUT_FORMAT_OBJECT }
+        );
+
+        // Padronizando a saída para minúsculas
+        const formattedMotorcycles = result.rows.map(moto => ({
+            id: moto.ID,
+            plate: moto.PLATE,
+            model: moto.MODEL,
+            status: moto.STATUS,
+            yard_id: moto.YARD_ID,
+            last_lat: moto.LAST_LAT,
+            last_lng: moto.LAST_LNG,
+        }));
+
+        res.status(200).json({ data: { motorcycles: formattedMotorcycles } });
+
+    } catch (err) {
+        console.error('Erro ao listar motocicletas:', err);
+        res.status(500).json({ message: 'Erro interno do servidor.' });
+    } finally {
+        if (connection) {
+            try { await connection.close(); } catch (e) { console.error('Erro ao fechar conexão:', e); }
+        }
+    }
+});
+
 // Inicia o servidor
 app.listen(port, () => {
     console.log(`Servidor backend rodando em http://localhost:${port}`);
