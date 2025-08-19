@@ -1,25 +1,23 @@
 Projeto Mottu App - Gerenciamento de Frotas (MVP)
-Este projeto é um aplicativo de gerenciamento de frotas de motocicletas desenvolvido com React Native (frontend) e Node.js com Oracle Database (backend). Ele permite cadastrar, visualizar, atualizar e excluir motos, além de funcionalidades de autenticação de usuários e gerenciamento de localizações de pátios.
+🚨 ATENÇÃO: Ao clonar este repositório, é FUNDAMENTAL que você troque para a branch TRY2 ANTES de instalar as dependências (npm install ou yarn install).
+
+Esta branch (TRY2) contém a versão do projeto onde a funcionalidade de buscar e gerenciar motos ainda utiliza o AsyncStorage localmente para persistência de dados no frontend. O backend Node.js com integração OracleDB está presente, mas a conexão do frontend com ele para o CRUD de motos não está totalmente ativa nesta branch para a listagem (GET /motos).
 
 Visão Geral do Projeto
-O objetivo principal deste projeto é criar uma solução para a Mottu gerenciar sua frota de motocicletas. O aplicativo permite que funcionários de diferentes pátios acessem e atualizem o status das motos, visualizem informações detalhadas e filtrem a frota com base em critérios como status, modelo e localização.
+Este projeto é um protótipo de aplicativo de gerenciamento de frotas de motocicletas desenvolvido com React Native (frontend) e Node.js com Oracle Database (backend). Ele visa permitir cadastrar, visualizar, atualizar e excluir motos, além de funcionalidades de autenticação de usuários.
 
-Funcionalidades Implementadas (até o momento):
+Funcionalidades Implementadas (na branch TRY2):
 Backend (Node.js/Express/OracleDB):
 
 Conexão com o banco de dados Oracle.
 Autenticação de usuários (registro e login com bcryptjs para senhas seguras).
-Rotas CRUD (Create, Read, Update, Delete) para o gerenciamento de motocicletas (/motos):
-POST /motos: Cadastra uma nova moto.
-GET /motos: Lista todas as motos (atualmente filtrando por um PATIO_ID_FIXO).
-PUT /motos/:id: Atualiza uma moto existente pelo ID.
-DELETE /motos/:id: Exclui uma moto pelo ID.
 Frontend (React Native/Expo):
 
 Tela de Autenticação (Login/Registro).
 Tela de Frota de Motos (MotosScreen):
 Exibição da lista de motos.
-Funcionalidade de puxar motos do backend (com axios).
+Armazenamento de motos localmente via AsyncStorage (nesta branch TRY2).
+Funcionalidade de puxar motos do AsyncStorage.
 Pesquisa de motos por placa.
 Filtragem por status, modelo e localização (com FilterModal).
 Visualização de detalhes e edição de motos (EditMotorcycleModal).
@@ -31,36 +29,14 @@ Estrutura do Projeto
 O projeto está dividido em duas partes principais:
 
 backend/: Contém o código do servidor Node.js e a lógica de interação com o banco de dados Oracle.
-./: Contém o código do aplicativo React Native (frontend).
-.
-├── backend/
-│   ├── server.js               # Servidor Node.js com rotas da API
-├── src/
-│   ├── assets/                 # Imagens e outros recursos estáticos
-│   ├── components/             # Componentes React Native reutilizáveis
-│   │   ├── EditMotorcycleModal.js
-│   │   └── FilterModal.js
-│   ├── config/                 # Configurações globais (ex: bikeModels.js)
-│   ├── navigation/             # Configuração de navegação (React Navigation)
-│   ├── screens/                # Telas principais do aplicativo
-│   │   ├── AuthScreen.js
-│   │   ├── MotosScreen.js
-│   │   ├── GerenciarLocalizacoesScreen.js (provavelmente)
-│   │   └── AdicionarMotoScreen.js (precisa de integração com o backend)
-│   └── style/                  # Folhas de estilo para as telas e componentes
-│       ├── Colors.js
-│       ├── GlobalStyles.js
-│       ├── MotosScreen.js
-│       └── ...
-├── App.js                      # Ponto de entrada do aplicativo
-├── package.json                # Dependências do frontend
-└── README.md                   # Este arquivo
+
 Configuração do Ambiente
 Para rodar este projeto, você precisará ter o Node.js, npm/yarn, e o ambiente de desenvolvimento para React Native (Expo CLI) instalados. Além disso, a máquina onde o backend roda precisará ter o Oracle Instant Client configurado para que o oracledb possa se conectar ao banco de dados.
 
 1. Pré-requisitos
 Node.js e npm/yarn: https://nodejs.org/
 Expo CLI:
+
 Bash
 
 npm install -g expo-cli
@@ -69,16 +45,31 @@ Oracle Instant Client (no PC do Backend): Siga as instruções oficiais do Oracl
 https://www.oracle.com/database/technologies/instant-client/downloads.html
 https://oracle.github.io/node-oracledb/INSTALL.html
 
-2. Configuração do Banco de Dados Oracle
-Conecte0se ao Bancode dados oracle configurado Ou Conecte-se ao seu banco de dados Oracle.
+2. Clonar o Repositório e Trocar de Branch
+Clone o repositório:
+Bash
 
-Caso se conecte ao seu:
-Crie as tabelas USERS e MOTOS:
+git clone 
+Navegue até a pasta do projeto:
+Bash
+
+cd AppMottu # Ou o nome da pasta que foi criada
+MUITO IMPORTANTE: Troque para a branch TRY2 AGORA:
+Bash
+
+git checkout TRY2
+3. Configuração do Banco de Dados Oracle
+
+A Aplicação ja vem configurada com o banco de dados do Autor, mas caso queira usar o seu...
+
+Conecte-se ao seu banco de dados Oracle.
+
+Crie as tabelas users
 
 SQL
 
--- Tabela USERS (para autenticação)
-CREATE TABLE USERS (
+-- Tabela users (para autenticação)
+CREATE TABLE users (
     ID NUMBER GENERATED BY DEFAULT ON NULL AS IDENTITY,
     USERNAME VARCHAR2(50) UNIQUE NOT NULL,
     EMAIL VARCHAR2(100) UNIQUE NOT NULL,
@@ -87,9 +78,7 @@ CREATE TABLE USERS (
     CONSTRAINT USERS_PK PRIMARY KEY (ID)
 );
 
-Verifique as permissões do usuário do banco de dados (rm558833) para garantir que ele possa SELECT, INSERT, UPDATE, DELETE nas tabelas USERS, PATIOS e MOTOS.
-
-3. Configuração e Execução do Backend
+4. Configuração e Execução do Backend
 Navegue até a pasta backend/ no seu terminal:
 Bash
 
@@ -114,7 +103,7 @@ Bash
 
 node server.js
 Você deverá ver a mensagem: Servidor backend rodando em http://localhost:3000.
-4. Configuração e Execução do Frontend (React Native)
+5. Configuração e Execução do Frontend (React Native)
 Navegue de volta para a pasta raiz do projeto no seu terminal:
 
 Bash
@@ -129,12 +118,12 @@ npm install
 yarn install
 Abra o arquivo src/screens/MotosScreen.js.
 
-AJUSTE A API_BASE_URL: Esta é a etapa mais crítica para a comunicação entre o frontend e o backend. Modifique a constante API_BASE_URL de acordo com seu ambiente de teste:
+API_BASE_URL: Nesta branch (TRY2), a API_BASE_URL não é diretamente usada para puxar as motos, pois elas são carregadas do AsyncStorage. No entanto, outras funcionalidades de backend (como login/registro ou futuras integrações de PUT/POST/DELETE com o backend) ainda podem depender dela. Mantenha a URL configurada corretamente para o seu ambiente de teste, caso decida testar as rotas de backend (login/registro ou o CRUD de motos do backend via Postman/Insomnia).
 
 Emulador Android:
 JavaScript
 
-const API_BASE_URL = 'http://10.0.2.2:3000';
+const API_BASE_URL = 'http://10.0.2.2:3000'; 
 Emulador iOS (Xcode Simulator) / Navegador Web / Testando no mesmo PC que o backend:
 JavaScript
 
@@ -147,11 +136,7 @@ const API_BASE_URL = 'http://<SEU_IP_DA_REDE>:3000';
 Para encontrar seu IP:
 Windows: Abra o Prompt de Comando e digite ipconfig. Procure por "Endereço IPv4" ou "IPv4 Address".
 macOS/Linux: Abra o Terminal e digite ifconfig ou ip a. Procure o IP associado à sua interface de rede (geralmente en0 ou wlan0).
-Adicione os estilos para o botão "Puxar Motos do DB" e o indicador de carregamento em src/style/MotosScreen.js:
 
-JavaScript
-
-// src/style/MotosScreen.js (adicione estas novas propriedades)
 Inicie o aplicativo React Native:
 
 Bash
@@ -159,21 +144,16 @@ Bash
 npx expo start
 Isso abrirá o Expo Dev Tools no seu navegador. A partir daí, você pode escolher rodar o aplicativo em um emulador, dispositivo físico ou no navegador.
 
-Como Usar o Aplicativo
-Inicie o Backend: Garanta que o servidor Node.js esteja rodando na pasta backend/.
+Como Usar o Aplicativo (na branch TRY2)
+Inicie o Backend: Garanta que o servidor Node.js esteja rodando na pasta backend/. (Mesmo que o frontend não puxe diretamente do backend para a listagem principal, o backend ainda é necessário para o login/registro e para testar as outras rotas).
 Inicie o Frontend: Inicie o aplicativo React Native usando npx expo start.
+Crie seu usuário e entre usando suas credenciais
 Acesse o MotosScreen:
 Ao iniciar o aplicativo, você pode navegar para a tela de motos.
-O aplicativo tentará carregar as motos do banco de dados automaticamente. Você também pode usar o botão "Puxar Motos do DB" para recarregar.
+As motos serão carregadas do AsyncStorage. Se for a primeira vez, a lista estará vazia.
+Você pode adicionar motos manualmente (via o botão "+") para que elas sejam salvas no AsyncStorage e apareçam na lista.
 Utilize os campos de busca e os filtros para encontrar motos específicas.
-Toque em uma moto na lista para abrir o modal de edição, onde você pode atualizar os dados ou excluir a moto.
-Use o botão "+" para ir para a tela de adicionar uma nova moto (esta tela precisará de integração com o backend para enviar dados via POST).
-Próximos Passos e Melhorias
-Integração da tela AdicionarMotoScreen.js: Atualmente, a tela de adicionar moto provavelmente ainda salva no AsyncStorage. Precisamos modificá-la para enviar os dados via POST para a rota /motos do backend.
-Gerenciamento de Pátios: Atualmente, o PATIO_ID_FIXO está em 1. Em um sistema real, o ID do pátio viria do login do usuário ou de uma seleção.
-Validação de Entrada: Implementar validação de entrada mais robusta tanto no frontend quanto no backend.
-Tratamento de Erros Aprimorado: Melhorar a exibição de mensagens de erro para o usuário.
-Melhoria da UI/UX: Refinar a interface do usuário e a experiência do usuário.
-Autenticação JWT: Implementar tokens JWT para autenticação segura entre frontend e backend.
-Variáveis de Ambiente: Usar variáveis de ambiente para dbConfig e API_BASE_URL para facilitar a configuração em diferentes ambientes (desenvolvimento, produção).
-Testes: Adicionar testes unitários e de integração.
+Toque em uma moto na lista para abrir o modal de edição, onde você pode atualizar os dados ou excluir a moto (essas operações também persistem no AsyncStorage).
+Tente adicionar algumas motos para visualizar os filtros funcionando!
+Page PatioMapScreen: 
+Contém um Mapa do google maps padrão, futuramente será a page que conterá um mapeamento digital completo do pátio da Mottu.
