@@ -2,6 +2,9 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
+
 import AuthScreen from './src/screens/AuthScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import MotosScreen from './src/screens/MotosScreen';
@@ -10,68 +13,104 @@ import ManageLocationsScreen from './src/screens/ManageLocationsScreen';
 import PatioMapScreen from './src/screens/PatioMapScreen';
 import { Colors } from './src/style/Colors';
 
-
 const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
+
+function HomeTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerStyle: { backgroundColor: Colors.mottuDark },
+        headerTintColor: Colors.mottuGreen,
+        tabBarActiveTintColor: Colors.mottuGreen,
+        tabBarInactiveTintColor: Colors.mottuLightGray,
+        tabBarStyle: { backgroundColor: Colors.mottuDark, borderTopColor: '#333' },
+        tabBarIcon: ({ color, size, focused }) => {
+          let icon = 'ellipse';
+          if (route.name === 'HomeTab') icon = focused ? 'home' : 'home-outline';
+          if (route.name === 'Motos') icon = focused ? 'bicycle' : 'bicycle-outline';
+          if (route.name === 'Mapa') icon = focused ? 'map' : 'map-outline';
+          return <Ionicons name={icon} size={size} color={color} />;
+        },
+      })}
+    >
+      <Tab.Screen
+        name="HomeTab"
+        component={HomeScreen}
+        options={{ title: 'Home' }}
+      />
+
+      <Tab.Screen
+        name="Motos"
+        component={MotosScreen}
+        options={({ navigation }) => ({
+          title: 'Motos',
+          headerRight: () => (
+            // botão no header para ir ao gerenciador de localizações
+            // (fica acessível mesmo com a tela dentro das abas)
+            <Ionicons
+              name="location-outline"
+              size={22}
+              color={Colors.mottuGreen}
+              style={{ marginRight: 12 }}
+              onPress={() => navigation.navigate('GerenciarLocalizacoes')}
+            />
+          ),
+        })}
+      />
+
+      <Tab.Screen
+        name="Mapa"
+        component={PatioMapScreen}
+        options={{ title: 'Mapa' }}
+      />
+    </Tab.Navigator>
+  );
+}
 
 export default function App() {
-    return (
-        <NavigationContainer>
-            <Stack.Navigator initialRouteName="Auth">
-                <Stack.Screen name="Auth" component={AuthScreen} options={{ headerShown: false }} />
-                <Stack.Screen
-                    name="Home"
-                    component={HomeScreen}
-                    options={{
-                        headerShown: true,
-                        title: 'Mottu Fleet',
-                        headerStyle: { backgroundColor: Colors.mottuGreen },
-                        headerTintColor: Colors.mottuDark,
-                        headerTitleStyle: { fontWeight: 'bold' },
-                    }}
-                />
-                <Stack.Screen
-                    name="Motos"
-                    component={MotosScreen}
-                    options={{
-                        headerShown: true,
-                        title: 'Motos',
-                        headerStyle: { backgroundColor: Colors.mottuGreen },
-                        headerTintColor: Colors.mottuDark,
-                        headerTitleStyle: { fontWeight: 'bold' },
-                    }}
-                />
-                <Stack.Screen
-                    name="AdicionarMoto"
-                    component={AddMotorcycleScreen}
-                    options={{
-                        headerShown: true,
-                        title: 'Adicionar Moto',
-                        headerStyle: { backgroundColor: Colors.mottuGreen },
-                        headerTintColor: Colors.mottuDark,
-                        headerTitleStyle: { fontWeight: 'bold' },
-                    }}
-                />
-                <Stack.Screen
-                    name="GerenciarLocalizacoes" 
-                    component={ManageLocationsScreen}
-                    options={{
-                        headerTitle: 'Gerenciar Localizações',
-                        headerStyle: { backgroundColor: Colors.mottuDark },
-                        headerTintColor: Colors.mottuGreen,
-                        headerBackTitleVisible: false,
-                    }}
-                />
-                <Stack.Screen 
-                name="MapeamentoPatio" 
-                component={PatioMapScreen}
-                options={{
-                    headerTitle: 'Mapa',
-                    headerStyle: { backgroundColor: Colors.mottuDark },
-                    headerTintColor: Colors.mottuGreen,
-                    headerBackTitleVisible: false,
-                }}
-                />
-            </Stack.Navigator>
-        </NavigationContainer>
-    );
+  return (
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="Auth">
+        <Stack.Screen
+          name="Auth"
+          component={AuthScreen}
+          options={{ headerShown: false }}
+        />
+
+        {/*
+          Mantemos o nome "Home" no Stack para compatibilizar com
+          navigation.navigate('Home') do AuthScreen, mas ele agora
+          renderiza as abas.
+        */}
+        <Stack.Screen
+          name="Home"
+          component={HomeTabs}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="AdicionarMoto"
+          component={AddMotorcycleScreen}
+          options={{
+            title: 'Adicionar Moto',
+            headerStyle: { backgroundColor: Colors.mottuDark },
+            headerTintColor: Colors.mottuGreen,
+            headerBackTitleVisible: false,
+          }}
+        />
+
+        <Stack.Screen
+          name="GerenciarLocalizacoes"
+          component={ManageLocationsScreen}
+          options={{
+            title: 'Localizações',
+            headerStyle: { backgroundColor: Colors.mottuDark },
+            headerTintColor: Colors.mottuGreen,
+            headerBackTitleVisible: false,
+          }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
 }
