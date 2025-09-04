@@ -29,22 +29,40 @@ const HomeStyles = StyleSheet.create({
     gap: 12,
   },
   card: {
-    flexBasis: '48%',
     backgroundColor: '#2b2b2b',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
     borderColor: '#333',
+    overflow: 'hidden',
   },
   cardLabel: {
     color: Colors.mottuLightGray,
     fontSize: 13,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   cardValue: {
     color: Colors.mottuGreen,
     fontSize: 28,
     fontWeight: '900',
+  },
+  extraContent: {
+    marginTop: 12,
+  },
+  extraText: {
+    color: Colors.mottuLightGray,
+    fontSize: 12,
+    marginBottom: 6,
+  },
+  fakeBar: {
+    height: 6,
+    backgroundColor: '#444',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  fakeBarFill: {
+    height: '100%',
+    backgroundColor: Colors.mottuGreen,
   },
   noteBox: {
     marginTop: 20,
