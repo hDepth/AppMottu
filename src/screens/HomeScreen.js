@@ -1,6 +1,6 @@
 // src/screens/HomeScreen.js
 import React, { useCallback, useState, useRef } from 'react';
-import { View, Text, ScrollView, RefreshControl, Pressable, Animated, Easing } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, Pressable, Animated, Easing, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +19,10 @@ function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [expanded, setExpanded] = useState(null);
 
+  const resetStorage = async () => {
+    await AsyncStorage.clear();
+    console.log('AsyncStorage limpo!');
+  };
   // Animated values para os 4 cards
   const animValues = {
     total: useRef(new Animated.Value(0)).current,
@@ -158,6 +162,8 @@ function HomeScreen() {
           Você pode adicionar motos no botão “+” da lista e gerenciar os locais
           pelo ícone no topo da aba Motos.
         </Text>
+
+        
       </View>
     </ScrollView>
   );
