@@ -210,10 +210,10 @@ function MotosScreen({ navigation, route }) {
             <View style={MotosStyles.container}>
                 <View style={MotosStyles.headerContainer}>
                     <Text style={MotosStyles.headerTitle}>Frota de Motos</Text>
-                    {/* Botão "Pátio Mapa" removido daqui, se ainda estivesse */}
+                    
                     <TouchableOpacity
                         style={MotosStyles.manageLocationsButton}
-                        onPress={() => navigation.navigate('GerenciarLocalizacoes')}
+                        onPress={() => navigation.navigate('Mapa')}
                     >
                         <Text style={MotosStyles.manageLocationsButtonText}>Localizações</Text>
                     </TouchableOpacity>

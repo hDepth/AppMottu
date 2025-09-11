@@ -46,14 +46,12 @@ function HomeTabs() {
         options={({ navigation }) => ({
           title: 'Motos',
           headerRight: () => (
-            // botão no header para ir ao gerenciador de localizações
-            // (fica acessível mesmo com a tela dentro das abas)
             <Ionicons
               name="location-outline"
               size={22}
               color={Colors.mottuGreen}
               style={{ marginRight: 12 }}
-              onPress={() => navigation.navigate('GerenciarLocalizacoes')}
+              onPress={() => navigation.navigate('Mapa')}
             />
           ),
         })}
