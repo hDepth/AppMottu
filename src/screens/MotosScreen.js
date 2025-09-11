@@ -200,8 +200,8 @@ function MotosScreen({ navigation, route }) {
                         </Text>
                     </View>
                 </View>
-                {/* REMOVIDO: Botão de Excluir dentro do card. Será movido para o modal. */}
             </TouchableOpacity>
+            
         );
     };
 

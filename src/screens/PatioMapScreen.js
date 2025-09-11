@@ -14,13 +14,14 @@ import {
 import Svg, { Rect, Circle, Text as SvgText } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../style/Colors';
+import { useFocusEffect, useRoute } from '@react-navigation/native';
 
 const MOTOS_KEY = '@mottuApp:motorcycles';
 const LOCATIONS_KEY = '@mottuApp:locations';
 
 const { width } = Dimensions.get('window');
 const CANVAS_SIZE = Math.min(width - 32, 840);
-const GRID_SIZE = 20; // snapping grid
+const GRID_SIZE = 20;
 
 function uid(prefix = '') {
   return `${prefix}${Date.now()}${Math.floor(Math.random() * 999)}`;
@@ -41,6 +42,7 @@ export default function PatioMapScreen() {
   const [areas, setAreas] = useState([]);
   const [motos, setMotos] = useState([]);
   const [tooltipMoto, setTooltipMoto] = useState(null);
+  const route = useRoute();
 
   const [creatingArea, setCreatingArea] = useState(false);
   const [tempArea, setTempArea] = useState(null);
@@ -49,27 +51,25 @@ export default function PatioMapScreen() {
 
   const areasRef = useRef({});
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const rawM = await AsyncStorage.getItem(MOTOS_KEY);
-        setMotos(rawM ? JSON.parse(rawM) : []);
-      } catch {}
-      try {
-        const rawA = await AsyncStorage.getItem(LOCATIONS_KEY);
-        setAreas(rawA ? JSON.parse(rawA) : []);
-      } catch {}
-    })();
-  }, []);
+  // Carregar dados sempre que a tela ganhar foco
+  useFocusEffect(
+    React.useCallback(() => {
+      (async () => {
+        try {
+          const rawM = await AsyncStorage.getItem(MOTOS_KEY);
+          setMotos(rawM ? JSON.parse(rawM) : []);
+        } catch {}
+        try {
+          const rawA = await AsyncStorage.getItem(LOCATIONS_KEY);
+          setAreas(rawA ? JSON.parse(rawA) : []);
+        } catch {}
+      })();
+    }, [])
+  );
 
   const persistAreas = async (newAreas) => {
     setAreas(newAreas);
     await AsyncStorage.setItem(LOCATIONS_KEY, JSON.stringify(newAreas));
-  };
-
-  const persistMotos = async (newMotos) => {
-    setMotos(newMotos);
-    await AsyncStorage.setItem(MOTOS_KEY, JSON.stringify(newMotos));
   };
 
   const resetAllData = async () => {
@@ -88,6 +88,7 @@ export default function PatioMapScreen() {
     ]);
   };
 
+  // Criar área
   const startCreateArea = () => {
     const w = snapToGrid(CANVAS_SIZE * 0.28);
     const h = snapToGrid(CANVAS_SIZE * 0.16);
@@ -123,6 +124,7 @@ export default function PatioMapScreen() {
     setNewAreaName('');
   };
 
+  // Movimentar e redimensionar áreas
   const createMovePan = (areaId) => {
     return PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -144,12 +146,44 @@ export default function PatioMapScreen() {
     });
   };
 
-  const handleMotoPress = (m) => {
-    setTooltipMoto(m);
+  const createResizePan = (areaId, corner) => {
+    const minSize = 40;
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        const base = areas.find((a) => a.id === areaId) || (tempArea && tempArea.id === areaId ? tempArea : null);
+        areasRef.current[areaId] = base ? { ...base } : null;
+      },
+      onPanResponderMove: (evt, gesture) => {
+        const base = areasRef.current[areaId];
+        if (!base) return;
+        let { x, y, width: w, height: h } = base;
+        if (corner === 'br') {
+          const nw = snapToGrid(Math.min(Math.max(w + gesture.dx, minSize), CANVAS_SIZE - x));
+          const nh = snapToGrid(Math.min(Math.max(h + gesture.dy, minSize), CANVAS_SIZE - y));
+          if (tempArea && tempArea.id === areaId) setTempArea((p) => (p ? { ...p, width: nw, height: nh } : p));
+          else setAreas((prev) => prev.map((p) => (p.id === areaId ? { ...p, width: nw, height: nh } : p)));
+        }
+      },
+      onPanResponderRelease: () => {
+        areasRef.current[areaId] = null;
+      },
+    });
   };
+
+  // Distância simulada entre usuário (centro inferior) e moto
+  function calcDistance(x, y) {
+    const userX = CANVAS_SIZE / 2;
+    const userY = CANVAS_SIZE - 40;
+    const dx = userX - x;
+    const dy = userY - y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    return `${Math.round(dist / 5)} m`;
+  }
 
   const renderArea = (a, isTemp = false) => {
     const movePan = createMovePan(a.id);
+    const resizePan = createResizePan(a.id, 'br');
     const fill = isTemp ? 'rgba(76,175,80,0.12)' : colorFromId(a.id);
     const stroke = isTemp ? Colors.mottuGreen : Colors.mottuDark;
 
@@ -165,6 +199,7 @@ export default function PatioMapScreen() {
           strokeWidth={2}
           {...movePan.panHandlers}
         />
+        <Rect x={a.x + a.width - 12} y={a.y + a.height - 12} width={16} height={16} fill={stroke} {...resizePan.panHandlers} />
         <SvgText x={a.x + a.width / 2} y={a.y + 16} fontSize={12} fill={stroke} fontWeight="700" textAnchor="middle">
           {a.name || 'Área'}
         </SvgText>
@@ -193,19 +228,21 @@ export default function PatioMapScreen() {
     else if (m.status === 'Alugada') color = '#f44336';
     else if (m.status === 'Aguardando Revisão') color = '#2196f3';
 
+    // Se estiver no modo foco, só renderizar essa moto
+    if (route.params?.focusMotoId && route.params.focusMotoId !== m.id) return null;
+
     return (
       <React.Fragment key={`moto-${m.id}`}>
-        <Circle cx={x} cy={y} r={10} fill={color} onPress={() => handleMotoPress(m)} />
-        <SvgText x={x} y={y + 20} fontSize={9} fill="#111" textAnchor="middle">
-          🛵
-        </SvgText>
+        <Circle cx={x} cy={y} r={10} fill={color} onPress={() => setTooltipMoto(m)} />
+        <SvgText x={x} y={y + 20} fontSize={9} fill="#111" textAnchor="middle">🛵</SvgText>
         {tooltipMoto && tooltipMoto.id === m.id && (
           <>
-            <Rect x={x + 12} y={y - 10} width={120} height={60} fill="#fff" stroke="#333" rx={6} />
+            <Rect x={x + 12} y={y - 10} width={140} height={70} fill="#fff" stroke="#333" rx={6} />
             <SvgText x={x + 16} y={y + 5} fontSize={10} fill="#111">{m.licensePlate}</SvgText>
             <SvgText x={x + 16} y={y + 18} fontSize={9} fill="#555">{m.model}</SvgText>
             <SvgText x={x + 16} y={y + 30} fontSize={9} fill={color}>{m.status}</SvgText>
             <SvgText x={x + 16} y={y + 42} fontSize={9} fill="#777">{m.location}</SvgText>
+            <SvgText x={x + 16} y={y + 54} fontSize={9} fill="#000">Dist: {calcDistance(x, y)}</SvgText>
           </>
         )}
       </React.Fragment>
@@ -229,18 +266,14 @@ export default function PatioMapScreen() {
 
         <View style={styles.canvasWrapper}>
           <Svg width={CANVAS_SIZE} height={CANVAS_SIZE} style={styles.canvas}>
-            {/* grid background */}
             {[...Array(Math.floor(CANVAS_SIZE / GRID_SIZE))].map((_, i) => (
-              <Rect key={`g-${i}`} x={i * GRID_SIZE} y={0} width={1} height={CANVAS_SIZE} fill={'rgba(0,0,0,0.04)'} />
+              <Rect key={`v-${i}`} x={i * GRID_SIZE} y={0} width={1} height={CANVAS_SIZE} fill={'rgba(0,0,0,0.04)'} />
             ))}
             {[...Array(Math.floor(CANVAS_SIZE / GRID_SIZE))].map((_, i) => (
               <Rect key={`h-${i}`} x={0} y={i * GRID_SIZE} width={CANVAS_SIZE} height={1} fill={'rgba(0,0,0,0.04)'} />
             ))}
-
-            {/* user point */}
             <Circle cx={CANVAS_SIZE / 2} cy={CANVAS_SIZE - 40} r={8} fill="#1976d2" />
             <SvgText x={CANVAS_SIZE / 2} y={CANVAS_SIZE - 22} fontSize={10} fill="#1976d2" textAnchor="middle">Você</SvgText>
-
             {areas.map((a) => renderArea(a, false))}
             {tempArea && renderArea(tempArea, true)}
             {motos.map((m) => renderMotoInArea(m))}
@@ -248,17 +281,10 @@ export default function PatioMapScreen() {
         </View>
 
         <View style={styles.footer}>
-          <TouchableOpacity
-            style={[styles.btn, { backgroundColor: Colors.mottuGreen }]}
-            onPress={() => {
-              if (!creatingArea || !tempArea) return Alert.alert('Criar área', 'Primeiro pressione Criar área.');
-              setNameModalVisible(true);
-            }}
-          >
+          <TouchableOpacity style={[styles.btn, { backgroundColor: Colors.mottuGreen }]} onPress={() => setNameModalVisible(true)}>
             <Text style={{ color: '#fff' }}>OK (Salvar área)</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.btn, { backgroundColor: '#ff6666' }]} onPress={() => cancelCreateArea()}>
+          <TouchableOpacity style={[styles.btn, { backgroundColor: '#ff6666' }]} onPress={cancelCreateArea}>
             <Text style={{ color: '#fff' }}>Cancelar</Text>
           </TouchableOpacity>
         </View>
@@ -289,17 +315,39 @@ export default function PatioMapScreen() {
   );
 }
 
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafb' },
   header: { padding: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { fontSize: 20, fontWeight: '700', color: Colors.mottuDark },
   headerRight: { flexDirection: 'row', alignItems: 'center' },
-  btn: { padding: 8, borderRadius: 8, marginLeft: 8 },
+  btn: { padding: 8, borderRadius: 8, marginLeft: 8, backgroundColor: '#eee' },
   btnText: { fontWeight: '700' },
   canvasWrapper: { alignItems: 'center', padding: 8 },
-  canvas: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee' },
+  canvas: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#eee',
+    // sombra leve para destaque (iOS / Android)
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
+  },
   footer: { flexDirection: 'row', justifyContent: 'space-around', padding: 12 },
   modalWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.35)' },
-  modalCard: { backgroundColor: '#fff', padding: 16, width: '90%', borderRadius: 8 },
+  modalCard: {
+    backgroundColor: '#fff',
+    padding: 16,
+    width: '90%',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 6,
+  },
   input: { borderBottomWidth: 1, borderColor: '#ddd', paddingVertical: 6 },
+  smallText: { fontSize: 12, color: '#666' },
 });
