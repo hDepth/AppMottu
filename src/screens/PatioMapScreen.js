@@ -1,3 +1,4 @@
+// src/screens/PatioMapScreen.js
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -50,6 +51,8 @@ export default function PatioMapScreen() {
   const [newAreaName, setNewAreaName] = useState('');
 
   const areasRef = useRef({});
+
+  const selectedPatioParam = route.params?.selectedPatio || route.params?.selectedPatioName || null;
 
   // Carregar dados sempre que a tela ganhar foco
   useFocusEffect(
@@ -182,6 +185,9 @@ export default function PatioMapScreen() {
   }
 
   const renderArea = (a, isTemp = false) => {
+    // Se a área possui propriedade 'patio' e não bate com param selecionado, ocultar
+    if (selectedPatioParam && a.patio && a.patio !== selectedPatioParam) return null;
+
     const movePan = createMovePan(a.id);
     const resizePan = createResizePan(a.id, 'br');
     const fill = isTemp ? 'rgba(76,175,80,0.12)' : colorFromId(a.id);
@@ -208,6 +214,9 @@ export default function PatioMapScreen() {
   };
 
   const renderMotoInArea = (m) => {
+    // Se o moto possui pátio e não bate com param selecionado, ocultar
+    if (selectedPatioParam && m.patio && m.patio !== selectedPatioParam) return null;
+
     let area = null;
     if (m.location) {
       area = areas.find((a) => a.name && a.name.toLowerCase() === m.location.toLowerCase());
@@ -253,7 +262,7 @@ export default function PatioMapScreen() {
     <TouchableWithoutFeedback onPress={() => setTooltipMoto(null)}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Mapa do Pátio</Text>
+          <Text style={styles.title}>Mapa do Pátio{selectedPatioParam ? ` - ${selectedPatioParam}` : ''}</Text>
           <View style={styles.headerRight}>
             <TouchableOpacity style={[styles.btn, { backgroundColor: '#fff' }]} onPress={startCreateArea}>
               <Text style={[styles.btnText, { color: Colors.mottuDark }]}>Criar área</Text>

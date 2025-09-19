@@ -12,6 +12,7 @@ import AddMotorcycleScreen from './src/screens/AddMotorcycleScreen';
 import ManageLocationsScreen from './src/screens/ManageLocationsScreen';
 import PatioMapScreen from './src/screens/PatioMapScreen';
 import { Colors } from './src/style/Colors';
+import ChoosePatioScreen from './src/screens/ChoosePatioScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -62,7 +63,15 @@ function HomeTabs() {
         component={PatioMapScreen}
         options={{ title: 'Mapa' }}
       />
+
+      <Tab.Screen
+        name="EscolherPatio"
+        component={ChoosePatioScreen}
+        options={{ title: 'Mapa' }}
+      />
     </Tab.Navigator>
+
+  
   );
 }
 

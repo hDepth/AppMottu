@@ -187,7 +187,7 @@ function MotosScreen({ navigation, route }) {
                 <View style={MotosStyles.detailsContainer}>
                     <Text style={MotosStyles.cardTitle}>{item.model}</Text>
                     <Text style={MotosStyles.cardSubtitle}>Placa: {item.licensePlate}</Text>
-                    <Text style={MotosStyles.cardText}>Local: {item.location}</Text>
+                    <Text style={MotosStyles.cardText}>Local: {item.location}{item.patio ? ` · ${item.patio}` : ''}</Text>
                     <View style={MotosStyles.statusBadgeContainer}>
                         <Text style={[
                             MotosStyles.statusBadge,
@@ -201,7 +201,7 @@ function MotosScreen({ navigation, route }) {
                     </View>
                 </View>
             </TouchableOpacity>
-            
+
         );
     };
 
@@ -210,7 +210,7 @@ function MotosScreen({ navigation, route }) {
             <View style={MotosStyles.container}>
                 <View style={MotosStyles.headerContainer}>
                     <Text style={MotosStyles.headerTitle}>Frota de Motos</Text>
-                    
+
                     <TouchableOpacity
                         style={MotosStyles.manageLocationsButton}
                         onPress={() => navigation.navigate('Mapa')}

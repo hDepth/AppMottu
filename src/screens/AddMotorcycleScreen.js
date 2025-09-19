@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+// src/screens/AddMotorcycleScreen.js
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -24,13 +25,15 @@ const STATUS_OPTIONS = ['Selecione um status', 'Disponível', 'Em Manutenção',
 const MOTOS_STORAGE_KEY = '@mottuApp:motorcycles';
 const LOCATIONS_STORAGE_KEY = '@mottuApp:locations';
 
-function AddMotorcycleScreen({ navigation }) {
+function AddMotorcycleScreen({ navigation, route }) {
   const [selectedModelId, setSelectedModelId] = useState('selecione_modelo');
   const [licensePlate, setLicensePlate] = useState('');
   const [status, setStatus] = useState(STATUS_OPTIONS[0]);
   const [location, setLocation] = useState('');
   const [loading, setLoading] = useState(false);
   const [availableLocations, setAvailableLocations] = useState([]);
+
+  const [selectedPatio, setSelectedPatio] = useState(''); // novo: pátio selecionado
 
   // Erros
   const [modelError, setModelError] = useState('');
@@ -57,9 +60,16 @@ function AddMotorcycleScreen({ navigation }) {
           console.error('Erro ao carregar localizações para a tela de adição:', error);
           Alert.alert('Erro', 'Não foi possível carregar as localizações salvas.');
         }
+
+        // Se retornamos da tela EscolherPátio com a seleção, aplicamos
+        if (route.params?.selectedPatio) {
+          setSelectedPatio(route.params.selectedPatio);
+          // limpa o param para evitar reaplicação
+          navigation.setParams({ selectedPatio: undefined });
+        }
       };
       loadAvailableLocations();
-    }, [])
+    }, [route.params?.selectedPatio])
   );
 
   const handleModelChange = (itemValue) => {
@@ -85,7 +95,7 @@ function AddMotorcycleScreen({ navigation }) {
 
   const handleLocationChange = (value) => {
     setLocation(value);
-    if (!value) setLocationError('Por favor, selecione uma área criada ou crie uma nova.');
+    if (!value) setLocationError('Por favor, selecione uma área criada ou crie uma nova no Pátio.');
     else setLocationError('');
   };
 
@@ -108,7 +118,6 @@ function AddMotorcycleScreen({ navigation }) {
 
     if (status === STATUS_OPTIONS[0]) { setStatusError('Status é obrigatório.'); hasError = true; }
 
-    
     if (!location || location.trim() === '') { setLocationError('Selecione uma área criada ou crie uma nova no Pátio.'); hasError = true; }
 
     if (hasError) {
@@ -125,6 +134,7 @@ function AddMotorcycleScreen({ navigation }) {
         licensePlate,
         status,
         location: location.trim(), // store area name
+        patio: selectedPatio || null, // novo campo: pátio selecionado (poderá ser null)
       };
 
       const storedMotos = await AsyncStorage.getItem(MOTOS_STORAGE_KEY);
@@ -147,8 +157,10 @@ function AddMotorcycleScreen({ navigation }) {
       setLicensePlate('');
       setStatus(STATUS_OPTIONS[0]);
       setLocation('');
+      setSelectedPatio('');
 
-      navigation.navigate('Mapa', { refresh: true });
+      // Ao invés de ir direto ao mapa, ir para a tela Escolher Pátio (conforme solicitado)
+      navigation.navigate('EscolherPatio', { from: 'AdicionarMoto' });
 
     } catch (error) {
       console.error('Erro ao salvar moto com AsyncStorage:', error);
@@ -208,6 +220,14 @@ function AddMotorcycleScreen({ navigation }) {
               </View>
             )}
             {locationError ? <Text style={AddMotorcycleStyles.errorText}>{locationError}</Text> : null}
+
+            {/* Novo: seleção de pátio */}
+            <View style={{ marginTop: 12, marginBottom: 6, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ color: '#444' }}>Pátio: {selectedPatio ? selectedPatio : 'Nenhum selecionado'}</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('EscolherPatio', { returnTo: 'AdicionarMoto' })}>
+                <Text style={{ color: Colors.mottuGreen, fontWeight: '700' }}>{selectedPatio ? 'Alterar pátio' : 'Escolher pátio'}</Text>
+              </TouchableOpacity>
+            </View>
 
             <TouchableOpacity style={AddMotorcycleStyles.button} onPress={handleSaveMotorcycle} disabled={loading}>
               {loading ? <ActivityIndicator color={Colors.mottuDark} size="small" /> : <Text style={AddMotorcycleStyles.buttonText}>Salvar Moto</Text>}
