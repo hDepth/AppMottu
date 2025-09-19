@@ -18,11 +18,11 @@ const ITEM_WIDTH = Math.round(width * 0.66);
 const ITEM_MARGIN = 12;
 
 const PATIOS = [
-  { id: 'patio-a', name: 'Pátio A', color: '#ffdede', emoji: '🏁' },
-  { id: 'patio-b', name: 'Pátio B', color: '#dff7df', emoji: '🏍️' },
-  { id: 'patio-c', name: 'Pátio C', color: '#dcecff', emoji: '🧭' },
-  { id: 'patio-d', name: 'Pátio D', color: '#fff8cc', emoji: '📍' },
-];
+    { id: "A", name: "Pátio A", shape: "grid", color: "#ffdede", emoji: "🏁" },
+    { id: "B", name: "Pátio B", shape: "circle", color: "#dff7df", emoji: "⭕" },
+    { id: "C", name: "Pátio C", shape: "L", color: "#dcecff", emoji: "🦵" },
+    { id: "D", name: "Pátio D", shape: "X", color: "#fff8cc", emoji: "❌" },
+  ];
 
 export default function ChoosePatioScreen({ navigation }) {
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -30,16 +30,20 @@ export default function ChoosePatioScreen({ navigation }) {
   const route = useRoute();
 
   const onSelectPatio = (patio) => {
-    // If the caller expects to return to AddMotorcycle, send it back
     if (route.params?.returnTo === 'AdicionarMoto' || route.params?.from === 'AdicionarMoto') {
-      // navigate back to AddMotorcycle with the selected patio
-      navigation.navigate('AdicionarMoto', { selectedPatio: patio.name });
+      // Voltando para cadastro de moto, salvar pátio escolhido
+      navigation.navigate('AdicionarMoto', { selectedPatio: patio.name, patioId: patio.id });
       return;
     }
-
-    // Otherwise open the Mapa and pass the selected patio
-    navigation.navigate('Mapa', { selectedPatio: patio.name });
+  
+    // Indo para o mapa de fato
+    navigation.navigate('Mapa', {
+      patioId: patio.id,           // "A", "B", "C", "D"
+      selectedPatio: patio.name,   // "Pátio A", etc
+      shape: patio.shape,          // "grid", "circle", "L", "X"
+    });
   };
+  
 
   return (
     <SafeAreaView style={styles.safeArea}>

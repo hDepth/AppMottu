@@ -1,5 +1,5 @@
 // src/screens/PatioMapScreen.js
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -11,20 +11,17 @@ import {
   Alert,
   PanResponder,
   TouchableWithoutFeedback,
-} from 'react-native';
-import Svg, { Rect, Circle, Text as SvgText } from 'react-native-svg';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors } from '../style/Colors';
-import { useFocusEffect, useRoute } from '@react-navigation/native';
+} from "react-native";
+import Svg, { Rect, Circle, Text as SvgText } from "react-native-svg";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Colors } from "../style/Colors";
+import { useFocusEffect, useRoute } from "@react-navigation/native";
 
-const MOTOS_KEY = '@mottuApp:motorcycles';
-const LOCATIONS_KEY = '@mottuApp:locations';
-
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 const CANVAS_SIZE = Math.min(width - 32, 840);
 const GRID_SIZE = 20;
 
-function uid(prefix = '') {
+function uid(prefix = "") {
   return `${prefix}${Date.now()}${Math.floor(Math.random() * 999)}`;
 }
 
@@ -32,60 +29,55 @@ function snapToGrid(value) {
   return Math.round(value / GRID_SIZE) * GRID_SIZE;
 }
 
-function colorFromId(id) {
-  const colors = ['#ffe0e0', '#e0ffe0', '#e0e0ff', '#fff5e0', '#e0f7fa', '#f3e5f5'];
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
-  return colors[Math.abs(hash) % colors.length];
-}
-
 export default function PatioMapScreen() {
+  const route = useRoute();
+  const { patioId, selectedPatio, shape } = route.params || {};
+  const AREAS_KEY = `@mottuApp:areas_patio_${patioId}`;
+  const MOTOS_KEY = "@mottuApp:motorcycles";
+
   const [areas, setAreas] = useState([]);
   const [motos, setMotos] = useState([]);
   const [tooltipMoto, setTooltipMoto] = useState(null);
-  const route = useRoute();
 
   const [creatingArea, setCreatingArea] = useState(false);
   const [tempArea, setTempArea] = useState(null);
   const [nameModalVisible, setNameModalVisible] = useState(false);
-  const [newAreaName, setNewAreaName] = useState('');
+  const [newAreaName, setNewAreaName] = useState("");
 
   const areasRef = useRef({});
 
-  const selectedPatioParam = route.params?.selectedPatio || route.params?.selectedPatioName || null;
-
-  // Carregar dados sempre que a tela ganhar foco
+  // Carrega dados por pátio
   useFocusEffect(
     React.useCallback(() => {
       (async () => {
         try {
           const rawM = await AsyncStorage.getItem(MOTOS_KEY);
-          setMotos(rawM ? JSON.parse(rawM) : []);
+          const allMotos = rawM ? JSON.parse(rawM) : [];
+          setMotos(allMotos.filter((m) => m.patio === selectedPatio));
         } catch {}
+
         try {
-          const rawA = await AsyncStorage.getItem(LOCATIONS_KEY);
+          const rawA = await AsyncStorage.getItem(AREAS_KEY);
           setAreas(rawA ? JSON.parse(rawA) : []);
         } catch {}
       })();
-    }, [])
+    }, [patioId])
   );
 
   const persistAreas = async (newAreas) => {
     setAreas(newAreas);
-    await AsyncStorage.setItem(LOCATIONS_KEY, JSON.stringify(newAreas));
+    await AsyncStorage.setItem(AREAS_KEY, JSON.stringify(newAreas));
   };
 
-  const resetAllData = async () => {
-    Alert.alert('Resetar dados', 'Deseja apagar TODOS os dados locais?', [
-      { text: 'Cancelar', style: 'cancel' },
+  const resetAreas = async () => {
+    Alert.alert("Resetar áreas", `Apagar TODAS as áreas do ${selectedPatio}?`, [
+      { text: "Cancelar", style: "cancel" },
       {
-        text: 'Apagar',
-        style: 'destructive',
+        text: "Apagar",
+        style: "destructive",
         onPress: async () => {
-          await AsyncStorage.multiRemove([MOTOS_KEY, LOCATIONS_KEY]);
-          setMotos([]);
+          await AsyncStorage.removeItem(AREAS_KEY);
           setAreas([]);
-          setTooltipMoto(null);
         },
       },
     ]);
@@ -93,11 +85,12 @@ export default function PatioMapScreen() {
 
   // Criar área
   const startCreateArea = () => {
-    const w = snapToGrid(CANVAS_SIZE * 0.28);
-    const h = snapToGrid(CANVAS_SIZE * 0.16);
+    const w = snapToGrid(CANVAS_SIZE * 0.25);
+    const h = snapToGrid(CANVAS_SIZE * 0.15);
     const a = {
-      id: uid('area-'),
-      name: '',
+      id: uid("area-"),
+      name: "",
+      patio: selectedPatio,
       x: snapToGrid((CANVAS_SIZE - w) / 2),
       y: snapToGrid((CANVAS_SIZE - h) / 2),
       width: w,
@@ -111,90 +104,61 @@ export default function PatioMapScreen() {
   const confirmCreateArea = async () => {
     if (!tempArea) return;
     if (!newAreaName.trim()) {
-      Alert.alert('Nome obrigatório', 'Dê um nome para a área.');
+      Alert.alert("Nome obrigatório", "Dê um nome para a área.");
       return;
     }
     const saved = { ...tempArea, name: newAreaName.trim() };
     setTempArea(null);
     setCreatingArea(false);
-    setNewAreaName('');
+    setNewAreaName("");
     await persistAreas([...areas, saved]);
   };
 
   const cancelCreateArea = () => {
     setTempArea(null);
     setCreatingArea(false);
-    setNewAreaName('');
+    setNewAreaName("");
   };
 
-  // Movimentar e redimensionar áreas
+  // Movimentar área
   const createMovePan = (areaId) => {
     return PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
-        const base = areas.find((a) => a.id === areaId) || (tempArea && tempArea.id === areaId ? tempArea : null);
+        const base =
+          areas.find((a) => a.id === areaId) ||
+          (tempArea && tempArea.id === areaId ? tempArea : null);
         areasRef.current[areaId] = base ? { ...base } : null;
       },
       onPanResponderMove: (evt, gesture) => {
         const ar = areasRef.current[areaId];
         if (!ar) return;
-        const nx = snapToGrid(Math.min(Math.max(ar.x + gesture.dx, 0), CANVAS_SIZE - ar.width));
-        const ny = snapToGrid(Math.min(Math.max(ar.y + gesture.dy, 0), CANVAS_SIZE - ar.height));
-        if (tempArea && tempArea.id === areaId) setTempArea((p) => (p ? { ...p, x: nx, y: ny } : p));
-        else setAreas((prev) => prev.map((p) => (p.id === areaId ? { ...p, x: nx, y: ny } : p)));
+        const nx = snapToGrid(
+          Math.min(Math.max(ar.x + gesture.dx, 0), CANVAS_SIZE - ar.width)
+        );
+        const ny = snapToGrid(
+          Math.min(Math.max(ar.y + gesture.dy, 0), CANVAS_SIZE - ar.height)
+        );
+        if (tempArea && tempArea.id === areaId)
+          setTempArea((p) => (p ? { ...p, x: nx, y: ny } : p));
+        else
+          setAreas((prev) =>
+            prev.map((p) => (p.id === areaId ? { ...p, x: nx, y: ny } : p))
+          );
       },
       onPanResponderRelease: () => {
         areasRef.current[areaId] = null;
       },
     });
   };
-
-  const createResizePan = (areaId, corner) => {
-    const minSize = 40;
-    return PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        const base = areas.find((a) => a.id === areaId) || (tempArea && tempArea.id === areaId ? tempArea : null);
-        areasRef.current[areaId] = base ? { ...base } : null;
-      },
-      onPanResponderMove: (evt, gesture) => {
-        const base = areasRef.current[areaId];
-        if (!base) return;
-        let { x, y, width: w, height: h } = base;
-        if (corner === 'br') {
-          const nw = snapToGrid(Math.min(Math.max(w + gesture.dx, minSize), CANVAS_SIZE - x));
-          const nh = snapToGrid(Math.min(Math.max(h + gesture.dy, minSize), CANVAS_SIZE - y));
-          if (tempArea && tempArea.id === areaId) setTempArea((p) => (p ? { ...p, width: nw, height: nh } : p));
-          else setAreas((prev) => prev.map((p) => (p.id === areaId ? { ...p, width: nw, height: nh } : p)));
-        }
-      },
-      onPanResponderRelease: () => {
-        areasRef.current[areaId] = null;
-      },
-    });
-  };
-
-  // Distância simulada entre usuário (centro inferior) e moto
-  function calcDistance(x, y) {
-    const userX = CANVAS_SIZE / 2;
-    const userY = CANVAS_SIZE - 40;
-    const dx = userX - x;
-    const dy = userY - y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    return `${Math.round(dist / 5)} m`;
-  }
 
   const renderArea = (a, isTemp = false) => {
-    // Se a área possui propriedade 'patio' e não bate com param selecionado, ocultar
-    if (selectedPatioParam && a.patio && a.patio !== selectedPatioParam) return null;
-
     const movePan = createMovePan(a.id);
-    const resizePan = createResizePan(a.id, 'br');
-    const fill = isTemp ? 'rgba(76,175,80,0.12)' : colorFromId(a.id);
+    const fill = isTemp ? "rgba(76,175,80,0.12)" : "#f2f2f2";
     const stroke = isTemp ? Colors.mottuGreen : Colors.mottuDark;
 
     return (
-      <React.Fragment key={`area-${a.id}${isTemp ? '-temp' : ''}`}>
+      <React.Fragment key={`${a.id}${isTemp ? "-temp" : ""}`}>
         <Rect
           x={a.x}
           y={a.y}
@@ -205,106 +169,154 @@ export default function PatioMapScreen() {
           strokeWidth={2}
           {...movePan.panHandlers}
         />
-        <Rect x={a.x + a.width - 12} y={a.y + a.height - 12} width={16} height={16} fill={stroke} {...resizePan.panHandlers} />
-        <SvgText x={a.x + a.width / 2} y={a.y + 16} fontSize={12} fill={stroke} fontWeight="700" textAnchor="middle">
-          {a.name || 'Área'}
+        <SvgText
+          x={a.x + a.width / 2}
+          y={a.y + 16}
+          fontSize={12}
+          fill={stroke}
+          fontWeight="700"
+          textAnchor="middle"
+        >
+          {a.name || "Área"}
         </SvgText>
       </React.Fragment>
     );
   };
 
-  const renderMotoInArea = (m) => {
-    // Se o moto possui pátio e não bate com param selecionado, ocultar
-    if (selectedPatioParam && m.patio && m.patio !== selectedPatioParam) return null;
-
-    let area = null;
-    if (m.location) {
-      area = areas.find((a) => a.name && a.name.toLowerCase() === m.location.toLowerCase());
-    }
-    if (!area) return null;
-
-    const margin = 8;
-    const maxCols = Math.max(1, Math.floor((area.width - margin * 2) / 28));
-    const maxRows = Math.max(1, Math.floor((area.height - margin * 2) / 28));
-    const hash = m.id.split('').reduce((s, c) => s + c.charCodeAt(0), 0);
-    const col = hash % maxCols;
-    const row = Math.floor(hash / 7) % maxRows;
-    const x = area.x + margin + col * 28 + 14;
-    const y = area.y + margin + row * 28 + 14;
-
-    let color = Colors.mottuGreen;
-    if (m.status === 'Em Manutenção') color = '#ff9800';
-    else if (m.status === 'Alugada') color = '#f44336';
-    else if (m.status === 'Aguardando Revisão') color = '#2196f3';
-
-    // Se estiver no modo foco, só renderizar essa moto
-    if (route.params?.focusMotoId && route.params.focusMotoId !== m.id) return null;
-
-    return (
-      <React.Fragment key={`moto-${m.id}`}>
-        <Circle cx={x} cy={y} r={10} fill={color} onPress={() => setTooltipMoto(m)} />
-        <SvgText x={x} y={y + 20} fontSize={9} fill="#111" textAnchor="middle">🛵</SvgText>
-        {tooltipMoto && tooltipMoto.id === m.id && (
+  // Renderiza formato do mapa
+  const renderMapShape = () => {
+    switch (shape) {
+      case "circle":
+        return (
+          <Circle
+            cx={CANVAS_SIZE / 2}
+            cy={CANVAS_SIZE / 2}
+            r={CANVAS_SIZE / 2 - 20}
+            fill="#fafafa"
+            stroke={Colors.mottuDark}
+          />
+        );
+      case "L":
+        return (
           <>
-            <Rect x={x + 12} y={y - 10} width={140} height={70} fill="#fff" stroke="#333" rx={6} />
-            <SvgText x={x + 16} y={y + 5} fontSize={10} fill="#111">{m.licensePlate}</SvgText>
-            <SvgText x={x + 16} y={y + 18} fontSize={9} fill="#555">{m.model}</SvgText>
-            <SvgText x={x + 16} y={y + 30} fontSize={9} fill={color}>{m.status}</SvgText>
-            <SvgText x={x + 16} y={y + 42} fontSize={9} fill="#777">{m.location}</SvgText>
-            <SvgText x={x + 16} y={y + 54} fontSize={9} fill="#000">Dist: {calcDistance(x, y)}</SvgText>
+            <Rect
+              x={0}
+              y={0}
+              width={CANVAS_SIZE * 0.35}
+              height={CANVAS_SIZE}
+              fill="#fafafa"
+              stroke={Colors.mottuDark}
+            />
+            <Rect
+              x={CANVAS_SIZE * 0.35}
+              y={CANVAS_SIZE * 0.65}
+              width={CANVAS_SIZE * 0.65}
+              height={CANVAS_SIZE * 0.35}
+              fill="#fafafa"
+              stroke={Colors.mottuDark}
+            />
           </>
-        )}
-      </React.Fragment>
-    );
+        );
+      case "X":
+        return (
+          <>
+            <Rect
+              x={CANVAS_SIZE / 2 - 30}
+              y={0}
+              width={60}
+              height={CANVAS_SIZE}
+              fill="#fafafa"
+              stroke={Colors.mottuDark}
+              rx={20}
+              ry={20}
+              transform={`rotate(45 ${CANVAS_SIZE / 2} ${CANVAS_SIZE / 2})`}
+            />
+            <Rect
+              x={CANVAS_SIZE / 2 - 30}
+              y={0}
+              width={60}
+              height={CANVAS_SIZE}
+              fill="#fafafa"
+              stroke={Colors.mottuDark}
+              rx={20}
+              ry={20}
+              transform={`rotate(-45 ${CANVAS_SIZE / 2} ${CANVAS_SIZE / 2})`}
+            />
+          </>
+        );
+      default: // grid
+        return (
+          <>
+            {[...Array(Math.floor(CANVAS_SIZE / GRID_SIZE))].map((_, i) => (
+              <Rect
+                key={`v-${i}`}
+                x={i * GRID_SIZE}
+                y={0}
+                width={1}
+                height={CANVAS_SIZE}
+                fill={"rgba(0,0,0,0.05)"}
+              />
+            ))}
+            {[...Array(Math.floor(CANVAS_SIZE / GRID_SIZE))].map((_, i) => (
+              <Rect
+                key={`h-${i}`}
+                x={0}
+                y={i * GRID_SIZE}
+                width={CANVAS_SIZE}
+                height={1}
+                fill={"rgba(0,0,0,0.05)"}
+              />
+            ))}
+          </>
+        );
+    }
   };
 
   return (
     <TouchableWithoutFeedback onPress={() => setTooltipMoto(null)}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Mapa do Pátio{selectedPatioParam ? ` - ${selectedPatioParam}` : ''}</Text>
-          <View style={styles.headerRight}>
-            <TouchableOpacity style={[styles.btn, { backgroundColor: '#fff' }]} onPress={startCreateArea}>
-              <Text style={[styles.btnText, { color: Colors.mottuDark }]}>Criar área</Text>
+          <Text style={styles.title}>
+            {selectedPatio} ({shape})
+          </Text>
+          <View style={{ flexDirection: "row" }}>
+            <TouchableOpacity style={styles.btn} onPress={startCreateArea}>
+              <Text style={styles.btnText}>Criar área</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.btn, { backgroundColor: Colors.mottuDark }]} onPress={resetAllData}>
-              <Text style={[styles.btnText, { color: '#fff' }]}>Resetar</Text>
+            <TouchableOpacity
+              style={[styles.btn, { backgroundColor: "#f44336" }]}
+              onPress={resetAreas}
+            >
+              <Text style={[styles.btnText, { color: "#fff" }]}>Resetar</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.canvasWrapper}>
           <Svg width={CANVAS_SIZE} height={CANVAS_SIZE} style={styles.canvas}>
-            {[...Array(Math.floor(CANVAS_SIZE / GRID_SIZE))].map((_, i) => (
-              <Rect key={`v-${i}`} x={i * GRID_SIZE} y={0} width={1} height={CANVAS_SIZE} fill={'rgba(0,0,0,0.04)'} />
-            ))}
-            {[...Array(Math.floor(CANVAS_SIZE / GRID_SIZE))].map((_, i) => (
-              <Rect key={`h-${i}`} x={0} y={i * GRID_SIZE} width={CANVAS_SIZE} height={1} fill={'rgba(0,0,0,0.04)'} />
-            ))}
-            <Circle cx={CANVAS_SIZE / 2} cy={CANVAS_SIZE - 40} r={8} fill="#1976d2" />
-            <SvgText x={CANVAS_SIZE / 2} y={CANVAS_SIZE - 22} fontSize={10} fill="#1976d2" textAnchor="middle">Você</SvgText>
-            {areas.map((a) => renderArea(a, false))}
+            {renderMapShape()}
+            {areas.map((a) => renderArea(a))}
             {tempArea && renderArea(tempArea, true)}
-            {motos.map((m) => renderMotoInArea(m))}
           </Svg>
-        </View>
-
-        <View style={styles.footer}>
-          <TouchableOpacity style={[styles.btn, { backgroundColor: Colors.mottuGreen }]} onPress={() => setNameModalVisible(true)}>
-            <Text style={{ color: '#fff' }}>OK (Salvar área)</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.btn, { backgroundColor: '#ff6666' }]} onPress={cancelCreateArea}>
-            <Text style={{ color: '#fff' }}>Cancelar</Text>
-          </TouchableOpacity>
         </View>
 
         <Modal transparent visible={nameModalVisible} animationType="slide">
           <View style={styles.modalWrap}>
             <View style={styles.modalCard}>
-              <Text style={{ fontWeight: '700', marginBottom: 8 }}>Nome da área</Text>
-              <TextInput value={newAreaName} onChangeText={setNewAreaName} placeholder="Ex: Setor A" style={styles.input} />
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-                <TouchableOpacity style={{ marginRight: 12 }} onPress={() => setNameModalVisible(false)}>
+              <Text style={{ fontWeight: "700", marginBottom: 8 }}>
+                Nome da área
+              </Text>
+              <TextInput
+                value={newAreaName}
+                onChangeText={setNewAreaName}
+                placeholder="Ex: Setor A"
+                style={styles.input}
+              />
+              <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
+                <TouchableOpacity
+                  style={{ marginRight: 12 }}
+                  onPress={() => setNameModalVisible(false)}
+                >
                   <Text>Fechar</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -324,39 +336,39 @@ export default function PatioMapScreen() {
   );
 }
 
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafb' },
-  header: { padding: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { fontSize: 20, fontWeight: '700', color: Colors.mottuDark },
-  headerRight: { flexDirection: 'row', alignItems: 'center' },
-  btn: { padding: 8, borderRadius: 8, marginLeft: 8, backgroundColor: '#eee' },
-  btnText: { fontWeight: '700' },
-  canvasWrapper: { alignItems: 'center', padding: 8 },
-  canvas: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#eee',
-    // sombra leve para destaque (iOS / Android)
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 3,
+  container: { flex: 1, backgroundColor: "#f8fafb" },
+  header: {
+    padding: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
-  footer: { flexDirection: 'row', justifyContent: 'space-around', padding: 12 },
-  modalWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.35)' },
-  modalCard: {
-    backgroundColor: '#fff',
-    padding: 16,
-    width: '90%',
+  title: { fontSize: 20, fontWeight: "700", color: Colors.mottuDark },
+  btn: {
+    padding: 8,
     borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 6,
+    marginLeft: 8,
+    backgroundColor: Colors.mottuDark,
   },
-  input: { borderBottomWidth: 1, borderColor: '#ddd', paddingVertical: 6 },
-  smallText: { fontSize: 12, color: '#666' },
+  btnText: { fontWeight: "700", color: "#fff" },
+  canvasWrapper: { alignItems: "center", padding: 8 },
+  canvas: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#eee",
+  },
+  modalWrap: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
+  modalCard: {
+    backgroundColor: "#fff",
+    padding: 16,
+    width: "90%",
+    borderRadius: 8,
+  },
+  input: { borderBottomWidth: 1, borderColor: "#ddd", paddingVertical: 6 },
 });
