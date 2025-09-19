@@ -21,7 +21,13 @@ import AddMotorcycleStyles from '../style/AddMotorcycleScreen';
 import { Colors } from '../style/Colors';
 import { BIKE_MODELS } from '../config/bikeModels';
 
-const STATUS_OPTIONS = ['Selecione um status', 'Disponível', 'Em Manutenção', 'Alugada', 'Aguardando Revisão'];
+const STATUS_OPTIONS = [
+  'Selecione um status',
+  'Disponível',
+  'Em Manutenção',
+  'Alugada',
+  'Aguardando Revisão',
+];
 const MOTOS_STORAGE_KEY = '@mottuApp:motorcycles';
 const LOCATIONS_STORAGE_KEY = '@mottuApp:locations';
 
@@ -33,7 +39,8 @@ function AddMotorcycleScreen({ navigation, route }) {
   const [loading, setLoading] = useState(false);
   const [availableLocations, setAvailableLocations] = useState([]);
 
-  const [selectedPatio, setSelectedPatio] = useState(''); // novo: pátio selecionado
+  const [selectedPatio, setSelectedPatio] = useState('');
+  const [selectedPatioId, setSelectedPatioId] = useState('');
 
   // Erros
   const [modelError, setModelError] = useState('');
@@ -41,41 +48,53 @@ function AddMotorcycleScreen({ navigation, route }) {
   const [statusError, setStatusError] = useState('');
   const [locationError, setLocationError] = useState('');
 
-  const currentSelectedModel = BIKE_MODELS.find(model => model.id === selectedModelId);
+  const currentSelectedModel = BIKE_MODELS.find(
+    (model) => model.id === selectedModelId
+  );
   const modelName = currentSelectedModel ? currentSelectedModel.name : '';
   const modelImage = currentSelectedModel ? currentSelectedModel.image : null;
 
-  // Reload locations when screen focuses (so newly created areas appear)
   useFocusEffect(
     React.useCallback(() => {
       const loadAvailableLocations = async () => {
         try {
-          const storedLocations = await AsyncStorage.getItem(LOCATIONS_STORAGE_KEY);
+          const storedLocations = await AsyncStorage.getItem(
+            LOCATIONS_STORAGE_KEY
+          );
           if (storedLocations) {
             setAvailableLocations(JSON.parse(storedLocations));
           } else {
             setAvailableLocations([]);
           }
         } catch (error) {
-          console.error('Erro ao carregar localizações para a tela de adição:', error);
-          Alert.alert('Erro', 'Não foi possível carregar as localizações salvas.');
+          console.error(
+            'Erro ao carregar localizações para a tela de adição:',
+            error
+          );
+          Alert.alert('Erro', 'Não foi possível carregar as localizações.');
         }
 
-        // Se retornamos da tela EscolherPátio com a seleção, aplicamos
-        if (route.params?.selectedPatio) {
+        // Captura seleção do pátio retornada da tela EscolherPatio
+        if (route.params?.selectedPatio && route.params?.patioId) {
           setSelectedPatio(route.params.selectedPatio);
-          // limpa o param para evitar reaplicação
-          navigation.setParams({ selectedPatio: undefined });
+          setSelectedPatioId(route.params.patioId);
+          navigation.setParams({
+            selectedPatio: undefined,
+            patioId: undefined,
+          });
         }
       };
       loadAvailableLocations();
-    }, [route.params?.selectedPatio])
+    }, [route.params?.selectedPatio, route.params?.patioId])
   );
 
   const handleModelChange = (itemValue) => {
     setSelectedModelId(itemValue);
-    if (itemValue === 'selecione_modelo') setModelError('Por favor, selecione um modelo de moto.');
-    else setModelError('');
+    setModelError(
+      itemValue === 'selecione_modelo'
+        ? 'Por favor, selecione um modelo de moto.'
+        : ''
+    );
   };
 
   const validateLicensePlate = (text) => {
@@ -83,20 +102,35 @@ function AddMotorcycleScreen({ navigation, route }) {
     setLicensePlate(up);
     const plateRegex = /^[A-Z]{3}-\d{4}$/;
     const mercosulRegex = /^[A-Z]{3}\d[A-Z0-9]\d{2}$/;
-    if (up.length > 0 && !plateRegex.test(up) && !mercosulRegex.test(up)) setLicensePlateError('Formato de placa inválido (ex: ABC-1234 ou ABC1D23).');
-    else setLicensePlateError('');
+    if (
+      up.length > 0 &&
+      !plateRegex.test(up) &&
+      !mercosulRegex.test(up)
+    ) {
+      setLicensePlateError(
+        'Formato de placa inválido (ex: ABC-1234 ou ABC1D23).'
+      );
+    } else {
+      setLicensePlateError('');
+    }
   };
 
   const handleStatusChange = (itemValue) => {
     setStatus(itemValue);
-    if (itemValue === STATUS_OPTIONS[0]) setStatusError('Por favor, selecione um status válido.');
-    else setStatusError('');
+    setStatusError(
+      itemValue === STATUS_OPTIONS[0]
+        ? 'Por favor, selecione um status válido.'
+        : ''
+    );
   };
 
   const handleLocationChange = (value) => {
     setLocation(value);
-    if (!value) setLocationError('Por favor, selecione uma área criada ou crie uma nova no Pátio.');
-    else setLocationError('');
+    setLocationError(
+      !value
+        ? 'Por favor, selecione uma área criada ou crie uma nova no Pátio.'
+        : ''
+    );
   };
 
   const handleSaveMotorcycle = async () => {
@@ -107,21 +141,48 @@ function AddMotorcycleScreen({ navigation, route }) {
 
     let hasError = false;
 
-    if (selectedModelId === 'selecione_modelo') { setModelError('Modelo é obrigatório.'); hasError = true; }
-
-    if (!licensePlate.trim()) { setLicensePlateError('Placa é obrigatória.'); hasError = true; }
-    else {
-      const plateRegex = /^[A-Z]{3}-\d{4}$/;
-      const mercosulRegex = /^[A-Z]{3}\d[A-Z0-9]\d{2}$/;
-      if (!plateRegex.test(licensePlate) && !mercosulRegex.test(licensePlate)) { setLicensePlateError('Formato de placa inválido (ex: ABC-1234 ou ABC1D23).'); hasError = true; }
+    if (selectedModelId === 'selecione_modelo') {
+      setModelError('Modelo é obrigatório.');
+      hasError = true;
     }
 
-    if (status === STATUS_OPTIONS[0]) { setStatusError('Status é obrigatório.'); hasError = true; }
+    if (!licensePlate.trim()) {
+      setLicensePlateError('Placa é obrigatória.');
+      hasError = true;
+    } else {
+      const plateRegex = /^[A-Z]{3}-\d{4}$/;
+      const mercosulRegex = /^[A-Z]{3}\d[A-Z0-9]\d{2}$/;
+      if (
+        !plateRegex.test(licensePlate) &&
+        !mercosulRegex.test(licensePlate)
+      ) {
+        setLicensePlateError(
+          'Formato de placa inválido (ex: ABC-1234 ou ABC1D23).'
+        );
+        hasError = true;
+      }
+    }
 
-    if (!location || location.trim() === '') { setLocationError('Selecione uma área criada ou crie uma nova no Pátio.'); hasError = true; }
+    if (status === STATUS_OPTIONS[0]) {
+      setStatusError('Status é obrigatório.');
+      hasError = true;
+    }
+
+    if (!location || location.trim() === '') {
+      setLocationError('Selecione uma área criada ou crie uma nova.');
+      hasError = true;
+    }
+
+    if (!selectedPatioId) {
+      Alert.alert('Erro', 'Selecione um pátio para cadastrar a moto.');
+      hasError = true;
+    }
 
     if (hasError) {
-      Alert.alert('Erro de Validação', 'Por favor, corrija os campos destacados.');
+      Alert.alert(
+        'Erro de Validação',
+        'Por favor, corrija os campos destacados.'
+      );
       return;
     }
 
@@ -133,16 +194,19 @@ function AddMotorcycleScreen({ navigation, route }) {
         model: modelName,
         licensePlate,
         status,
-        location: location.trim(), // store area name
-        patio: selectedPatio || null, // novo campo: pátio selecionado (poderá ser null)
+        location: location.trim(),
+        patio: selectedPatio || null,
+        patioId: selectedPatioId || null,
       };
 
       const storedMotos = await AsyncStorage.getItem(MOTOS_STORAGE_KEY);
       let motos = storedMotos ? JSON.parse(storedMotos) : [];
 
-      const plateAlreadyExists = motos.some(moto => moto.licensePlate === newMotorcycle.licensePlate);
+      const plateAlreadyExists = motos.some(
+        (moto) => moto.licensePlate === newMotorcycle.licensePlate
+      );
       if (plateAlreadyExists) {
-        Alert.alert('Erro', 'Já existe uma moto cadastrada com esta placa.');
+        Alert.alert('Erro', 'Já existe uma moto com esta placa.');
         setLoading(false);
         return;
       }
@@ -150,21 +214,21 @@ function AddMotorcycleScreen({ navigation, route }) {
       motos.push(newMotorcycle);
       await AsyncStorage.setItem(MOTOS_STORAGE_KEY, JSON.stringify(motos));
 
-      Alert.alert('Sucesso!', 'Moto adicionada e vinculada à área selecionada!');
+      Alert.alert('Sucesso!', 'Moto adicionada com sucesso!');
 
-      // Limpar formulário
+      // Limpar
       setSelectedModelId('selecione_modelo');
       setLicensePlate('');
       setStatus(STATUS_OPTIONS[0]);
       setLocation('');
       setSelectedPatio('');
+      setSelectedPatioId('');
 
-      // Ao invés de ir direto ao mapa, ir para a tela Escolher Pátio (conforme solicitado)
+      // Vai para escolha de pátio
       navigation.navigate('EscolherPatio', { from: 'AdicionarMoto' });
-
     } catch (error) {
-      console.error('Erro ao salvar moto com AsyncStorage:', error);
-      Alert.alert('Erro', 'Não foi possível salvar a moto localmente. Tente novamente.');
+      console.error('Erro ao salvar moto:', error);
+      Alert.alert('Erro', 'Não foi possível salvar a moto.');
     } finally {
       setLoading(false);
     }
@@ -172,72 +236,182 @@ function AddMotorcycleScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={AddMotorcycleStyles.safeArea}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <ScrollView contentContainerStyle={AddMotorcycleStyles.container}>
-          <Text style={AddMotorcycleStyles.headerTitle}>Adicionar Nova Moto</Text>
+          <Text style={AddMotorcycleStyles.headerTitle}>
+            Adicionar Nova Moto
+          </Text>
 
           <View style={AddMotorcycleStyles.formContainer}>
             {modelImage && (
               <View style={AddMotorcycleStyles.selectedImageContainer}>
-                <Image source={modelImage} style={AddMotorcycleStyles.selectedMotorcycleImage} resizeMode="contain" />
+                <Image
+                  source={modelImage}
+                  style={AddMotorcycleStyles.selectedMotorcycleImage}
+                  resizeMode="contain"
+                />
               </View>
             )}
 
+            {/* Modelo */}
             <Text style={AddMotorcycleStyles.label}>Modelo da Moto:</Text>
-            <View style={[AddMotorcycleStyles.pickerContainer, modelError ? AddMotorcycleStyles.inputError : {}]}>
-              <Picker selectedValue={selectedModelId} onValueChange={handleModelChange} style={AddMotorcycleStyles.picker} itemStyle={AddMotorcycleStyles.pickerItem}>
-                {BIKE_MODELS.map((model) => (<Picker.Item key={model.id} label={model.name} value={model.id} />))}
+            <View
+              style={[
+                AddMotorcycleStyles.pickerContainer,
+                modelError ? AddMotorcycleStyles.inputError : {},
+              ]}
+            >
+              <Picker
+                selectedValue={selectedModelId}
+                onValueChange={handleModelChange}
+                style={AddMotorcycleStyles.picker}
+                itemStyle={AddMotorcycleStyles.pickerItem}
+              >
+                {BIKE_MODELS.map((model) => (
+                  <Picker.Item
+                    key={model.id}
+                    label={model.name}
+                    value={model.id}
+                  />
+                ))}
               </Picker>
             </View>
-            {modelError ? <Text style={AddMotorcycleStyles.errorText}>{modelError}</Text> : null}
+            {modelError ? (
+              <Text style={AddMotorcycleStyles.errorText}>{modelError}</Text>
+            ) : null}
 
+            {/* Placa */}
             <Text style={AddMotorcycleStyles.label}>Placa:</Text>
-            <TextInput style={[AddMotorcycleStyles.input, licensePlateError ? AddMotorcycleStyles.inputError : {}]} placeholder="Ex: ABC-1234 ou ABC1D23" placeholderTextColor={Colors.mottuLightGray} value={licensePlate} onChangeText={validateLicensePlate} maxLength={7} autoCapitalize="characters" />
-            {licensePlateError ? <Text style={AddMotorcycleStyles.errorText}>{licensePlateError}</Text> : null}
+            <TextInput
+              style={[
+                AddMotorcycleStyles.input,
+                licensePlateError ? AddMotorcycleStyles.inputError : {},
+              ]}
+              placeholder="Ex: ABC-1234 ou ABC1D23"
+              placeholderTextColor={Colors.mottuLightGray}
+              value={licensePlate}
+              onChangeText={validateLicensePlate}
+              maxLength={7}
+              autoCapitalize="characters"
+            />
+            {licensePlateError ? (
+              <Text style={AddMotorcycleStyles.errorText}>
+                {licensePlateError}
+              </Text>
+            ) : null}
 
+            {/* Status */}
             <Text style={AddMotorcycleStyles.label}>Status:</Text>
-            <View style={[AddMotorcycleStyles.pickerContainer, statusError ? AddMotorcycleStyles.inputError : {}]}>
-              <Picker selectedValue={status} onValueChange={handleStatusChange} style={AddMotorcycleStyles.picker} itemStyle={AddMotorcycleStyles.pickerItem}>
-                {STATUS_OPTIONS.map((opt, index) => (<Picker.Item key={index} label={opt} value={opt} />))}
+            <View
+              style={[
+                AddMotorcycleStyles.pickerContainer,
+                statusError ? AddMotorcycleStyles.inputError : {},
+              ]}
+            >
+              <Picker
+                selectedValue={status}
+                onValueChange={handleStatusChange}
+                style={AddMotorcycleStyles.picker}
+                itemStyle={AddMotorcycleStyles.pickerItem}
+              >
+                {STATUS_OPTIONS.map((opt, index) => (
+                  <Picker.Item key={index} label={opt} value={opt} />
+                ))}
               </Picker>
             </View>
-            {statusError ? <Text style={AddMotorcycleStyles.errorText}>{statusError}</Text> : null}
+            {statusError ? (
+              <Text style={AddMotorcycleStyles.errorText}>{statusError}</Text>
+            ) : null}
 
+            {/* Área */}
             <Text style={AddMotorcycleStyles.label}>Área do Pátio:</Text>
             {availableLocations.length === 0 ? (
               <View style={{ marginBottom: 10 }}>
-                <Text style={{ color: '#666', marginBottom: 8 }}>Nenhuma área criada ainda.</Text>
-                <TouchableOpacity style={[AddMotorcycleStyles.button, { backgroundColor: '#ffdd57' }]} onPress={() => navigation.navigate('Mapa')}>
-                  <Text style={{ color: '#000', fontWeight: '700' }}>Criar área no Pátio</Text>
+                <Text style={{ color: '#666', marginBottom: 8 }}>
+                  Nenhuma área criada ainda.
+                </Text>
+                <TouchableOpacity
+                  style={[
+                    AddMotorcycleStyles.button,
+                    { backgroundColor: '#ffdd57' },
+                  ]}
+                  onPress={() => navigation.navigate('Mapa')}
+                >
+                  <Text style={{ color: '#000', fontWeight: '700' }}>
+                    Criar área no Pátio
+                  </Text>
                 </TouchableOpacity>
               </View>
             ) : (
-              <View style={[AddMotorcycleStyles.pickerContainer, locationError ? AddMotorcycleStyles.inputError : {}]}>
-                <Picker selectedValue={location} onValueChange={(v) => handleLocationChange(v)} style={AddMotorcycleStyles.picker} itemStyle={AddMotorcycleStyles.pickerItem}>
+              <View
+                style={[
+                  AddMotorcycleStyles.pickerContainer,
+                  locationError ? AddMotorcycleStyles.inputError : {},
+                ]}
+              >
+                <Picker
+                  selectedValue={location}
+                  onValueChange={handleLocationChange}
+                  style={AddMotorcycleStyles.picker}
+                  itemStyle={AddMotorcycleStyles.pickerItem}
+                >
                   <Picker.Item label="-- Selecione uma área --" value="" />
-                  {availableLocations.map(loc => (<Picker.Item key={loc.id} label={loc.name} value={loc.name} />))}
+                  {availableLocations.map((loc) => (
+                    <Picker.Item key={loc.id} label={loc.name} value={loc.name} />
+                  ))}
                 </Picker>
               </View>
             )}
-            {locationError ? <Text style={AddMotorcycleStyles.errorText}>{locationError}</Text> : null}
+            {locationError ? (
+              <Text style={AddMotorcycleStyles.errorText}>{locationError}</Text>
+            ) : null}
 
-            {/* Novo: seleção de pátio */}
-            <View style={{ marginTop: 12, marginBottom: 6, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={{ color: '#444' }}>Pátio: {selectedPatio ? selectedPatio : 'Nenhum selecionado'}</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('EscolherPatio', { returnTo: 'AdicionarMoto' })}>
-                <Text style={{ color: Colors.mottuGreen, fontWeight: '700' }}>{selectedPatio ? 'Alterar pátio' : 'Escolher pátio'}</Text>
+            {/* Seleção de Pátio */}
+            <View
+              style={{
+                marginTop: 12,
+                marginBottom: 6,
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ color: '#444' }}>
+                Pátio: {selectedPatio ? selectedPatio : 'Nenhum selecionado'}
+              </Text>
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate('EscolherPatio', {
+                    returnTo: 'AdicionarMoto',
+                  })
+                }
+              >
+                <Text
+                  style={{
+                    color: Colors.mottuGreen,
+                    fontWeight: '700',
+                  }}
+                >
+                  {selectedPatio ? 'Alterar pátio' : 'Escolher pátio'}
+                </Text>
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity style={AddMotorcycleStyles.button} onPress={handleSaveMotorcycle} disabled={loading}>
-              {loading ? <ActivityIndicator color={Colors.mottuDark} size="small" /> : <Text style={AddMotorcycleStyles.buttonText}>Salvar Moto</Text>}
+            {/* Botão Salvar */}
+            <TouchableOpacity
+              style={AddMotorcycleStyles.button}
+              onPress={handleSaveMotorcycle}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color={Colors.mottuDark} size="small" />
+              ) : (
+                <Text style={AddMotorcycleStyles.buttonText}>Salvar Moto</Text>
+              )}
             </TouchableOpacity>
-
-            <View style={{ marginTop: 12 }}>
-              <TouchableOpacity onPress={() => navigation.navigate('Mapa')}>
-                <Text style={{ color: Colors.mottuGreen, fontWeight: '700' }}>Criar/Editar Áreas do Pátio</Text>
-              </TouchableOpacity>
-            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

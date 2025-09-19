@@ -37,23 +37,21 @@ export default function PatioMapScreen() {
 
   const [areas, setAreas] = useState([]);
   const [motos, setMotos] = useState([]);
-  const [tooltipMoto, setTooltipMoto] = useState(null);
 
-  const [creatingArea, setCreatingArea] = useState(false);
   const [tempArea, setTempArea] = useState(null);
   const [nameModalVisible, setNameModalVisible] = useState(false);
   const [newAreaName, setNewAreaName] = useState("");
 
   const areasRef = useRef({});
 
-  // Carrega dados por pátio
+  // Carrega dados
   useFocusEffect(
     React.useCallback(() => {
       (async () => {
         try {
           const rawM = await AsyncStorage.getItem(MOTOS_KEY);
           const allMotos = rawM ? JSON.parse(rawM) : [];
-          setMotos(allMotos.filter((m) => m.patio === selectedPatio));
+          setMotos(allMotos.filter((m) => m.patioId === patioId));
         } catch {}
 
         try {
@@ -83,22 +81,22 @@ export default function PatioMapScreen() {
     ]);
   };
 
-  // Criar área
+  // Criar área temporária
   const startCreateArea = () => {
     const w = snapToGrid(CANVAS_SIZE * 0.25);
     const h = snapToGrid(CANVAS_SIZE * 0.15);
     const a = {
       id: uid("area-"),
       name: "",
-      patio: selectedPatio,
+      patioId,
       x: snapToGrid((CANVAS_SIZE - w) / 2),
       y: snapToGrid((CANVAS_SIZE - h) / 2),
       width: w,
       height: h,
     };
     setTempArea(a);
-    setCreatingArea(true);
-    areasRef.current[a.id] = { ...a };
+    setNewAreaName("");
+    setNameModalVisible(true);
   };
 
   const confirmCreateArea = async () => {
@@ -109,25 +107,25 @@ export default function PatioMapScreen() {
     }
     const saved = { ...tempArea, name: newAreaName.trim() };
     setTempArea(null);
-    setCreatingArea(false);
     setNewAreaName("");
+    setNameModalVisible(false);
     await persistAreas([...areas, saved]);
   };
 
   const cancelCreateArea = () => {
     setTempArea(null);
-    setCreatingArea(false);
     setNewAreaName("");
+    setNameModalVisible(false);
   };
 
-  // Movimentar área
-  const createMovePan = (areaId) => {
+  // Movimentar
+  const createMovePan = (areaId, isTemp = false) => {
     return PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
-        const base =
-          areas.find((a) => a.id === areaId) ||
-          (tempArea && tempArea.id === areaId ? tempArea : null);
+        const base = isTemp
+          ? tempArea
+          : areas.find((a) => a.id === areaId);
         areasRef.current[areaId] = base ? { ...base } : null;
       },
       onPanResponderMove: (evt, gesture) => {
@@ -139,12 +137,13 @@ export default function PatioMapScreen() {
         const ny = snapToGrid(
           Math.min(Math.max(ar.y + gesture.dy, 0), CANVAS_SIZE - ar.height)
         );
-        if (tempArea && tempArea.id === areaId)
-          setTempArea((p) => (p ? { ...p, x: nx, y: ny } : p));
-        else
+        if (isTemp) {
+          setTempArea((prev) => (prev ? { ...prev, x: nx, y: ny } : prev));
+        } else {
           setAreas((prev) =>
             prev.map((p) => (p.id === areaId ? { ...p, x: nx, y: ny } : p))
           );
+        }
       },
       onPanResponderRelease: () => {
         areasRef.current[areaId] = null;
@@ -152,20 +151,67 @@ export default function PatioMapScreen() {
     });
   };
 
+  // Resize
+  const createResizePan = (areaId, corner, isTemp = false) => {
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderMove: (evt, gesture) => {
+        if (isTemp) {
+          setTempArea((prev) => {
+            if (!prev || prev.id !== areaId) return prev;
+            return resizeLogic(prev, corner, gesture);
+          });
+        } else {
+          setAreas((prev) =>
+            prev.map((a) =>
+              a.id === areaId ? resizeLogic(a, corner, gesture) : a
+            )
+          );
+        }
+      },
+    });
+  };
+
+  const resizeLogic = (a, corner, gesture) => {
+    let { x, y, width, height } = a;
+    if (corner.includes("right")) {
+      width = snapToGrid(Math.max(40, width + gesture.dx));
+    }
+    if (corner.includes("bottom")) {
+      height = snapToGrid(Math.max(40, height + gesture.dy));
+    }
+    if (corner.includes("left")) {
+      const newX = snapToGrid(Math.max(0, x + gesture.dx));
+      width = snapToGrid(Math.max(40, width - (newX - x)));
+      x = newX;
+    }
+    if (corner.includes("top")) {
+      const newY = snapToGrid(Math.max(0, y + gesture.dy));
+      height = snapToGrid(Math.max(40, height - (newY - y)));
+      y = newY;
+    }
+    return { ...a, x, y, width, height };
+  };
+
+  // Render área (fixa ou temp)
   const renderArea = (a, isTemp = false) => {
-    const movePan = createMovePan(a.id);
-    const fill = isTemp ? "rgba(76,175,80,0.12)" : "#f2f2f2";
-    const stroke = isTemp ? Colors.mottuGreen : Colors.mottuDark;
+    const movePan = createMovePan(a.id, isTemp);
+    const handles = [
+      { corner: "top-left", x: a.x - 8, y: a.y - 8 },
+      { corner: "top-right", x: a.x + a.width - 8, y: a.y - 8 },
+      { corner: "bottom-left", x: a.x - 8, y: a.y + a.height - 8 },
+      { corner: "bottom-right", x: a.x + a.width - 8, y: a.y + a.height - 8 },
+    ];
 
     return (
-      <React.Fragment key={`${a.id}${isTemp ? "-temp" : ""}`}>
+      <React.Fragment key={a.id + (isTemp ? "-temp" : "")}>
         <Rect
           x={a.x}
           y={a.y}
           width={a.width}
           height={a.height}
-          fill={fill}
-          stroke={stroke}
+          fill={isTemp ? "rgba(76,175,80,0.1)" : "rgba(76,175,80,0.2)"}
+          stroke={isTemp ? Colors.mottuGreen : Colors.mottuDark}
           strokeWidth={2}
           {...movePan.panHandlers}
         />
@@ -173,17 +219,35 @@ export default function PatioMapScreen() {
           x={a.x + a.width / 2}
           y={a.y + 16}
           fontSize={12}
-          fill={stroke}
+          fill={Colors.mottuDark}
           fontWeight="700"
           textAnchor="middle"
         >
           {a.name || "Área"}
         </SvgText>
+        {handles.map((h) => {
+          const resizePan = createResizePan(a.id, h.corner, isTemp);
+          return (
+            <Rect
+              key={h.corner}
+              x={h.x}
+              y={h.y}
+              width={16}
+              height={16}
+              fill={Colors.mottuGreen}
+              stroke="#fff"
+              strokeWidth={2}
+              rx={4}
+              ry={4}
+              {...resizePan.panHandlers}
+            />
+          );
+        })}
       </React.Fragment>
     );
   };
 
-  // Renderiza formato do mapa
+  // Renderiza mapa base
   const renderMapShape = () => {
     switch (shape) {
       case "circle":
@@ -244,7 +308,7 @@ export default function PatioMapScreen() {
             />
           </>
         );
-      default: // grid
+      default:
         return (
           <>
             {[...Array(Math.floor(CANVAS_SIZE / GRID_SIZE))].map((_, i) => (
@@ -273,22 +337,41 @@ export default function PatioMapScreen() {
   };
 
   return (
-    <TouchableWithoutFeedback onPress={() => setTooltipMoto(null)}>
+    <TouchableWithoutFeedback>
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>
             {selectedPatio} ({shape})
           </Text>
           <View style={{ flexDirection: "row" }}>
-            <TouchableOpacity style={styles.btn} onPress={startCreateArea}>
-              <Text style={styles.btnText}>Criar área</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.btn, { backgroundColor: "#f44336" }]}
-              onPress={resetAreas}
-            >
-              <Text style={[styles.btnText, { color: "#fff" }]}>Resetar</Text>
-            </TouchableOpacity>
+            {!tempArea ? (
+              <>
+                <TouchableOpacity style={styles.btn} onPress={startCreateArea}>
+                  <Text style={styles.btnText}>Criar área</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.btn, { backgroundColor: "#f44336" }]}
+                  onPress={resetAreas}
+                >
+                  <Text style={[styles.btnText, { color: "#fff" }]}>Resetar</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={[styles.btn, { backgroundColor: Colors.mottuGreen }]}
+                  onPress={confirmCreateArea}
+                >
+                  <Text style={styles.btnText}>Confirmar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.btn, { backgroundColor: "#f44336" }]}
+                  onPress={cancelCreateArea}
+                >
+                  <Text style={styles.btnText}>Cancelar</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
 
@@ -300,6 +383,7 @@ export default function PatioMapScreen() {
           </Svg>
         </View>
 
+        {/* Modal de nome da área */}
         <Modal transparent visible={nameModalVisible} animationType="slide">
           <View style={styles.modalWrap}>
             <View style={styles.modalCard}>
@@ -315,17 +399,16 @@ export default function PatioMapScreen() {
               <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
                 <TouchableOpacity
                   style={{ marginRight: 12 }}
-                  onPress={() => setNameModalVisible(false)}
+                  onPress={cancelCreateArea}
                 >
-                  <Text>Fechar</Text>
+                  <Text>Cancelar</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => {
-                    confirmCreateArea();
                     setNameModalVisible(false);
                   }}
                 >
-                  <Text style={{ color: Colors.mottuGreen }}>Salvar</Text>
+                  <Text style={{ color: Colors.mottuGreen }}>Ok</Text>
                 </TouchableOpacity>
               </View>
             </View>
