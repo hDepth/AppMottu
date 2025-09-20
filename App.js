@@ -1,4 +1,3 @@
-// App.js
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -63,15 +62,14 @@ function HomeTabs() {
         component={PatioMapScreen}
         options={{ title: 'Mapa' }}
       />
-
       <Tab.Screen
-        name="EscolherPatio"
+        name="Patios"
         component={ChoosePatioScreen}
-        options={{ title: 'Mapa' }}
+        options={{ title: 'Patios' }}
       />
-    </Tab.Navigator>
 
-  
+      {/* REMOVED EscolherPatio from tabs - now on Stack */}
+    </Tab.Navigator>
   );
 }
 
@@ -85,15 +83,22 @@ export default function App() {
           options={{ headerShown: false }}
         />
 
-        {/*
-          Mantemos o nome "Home" no Stack para compatibilizar com
-          navigation.navigate('Home') do AuthScreen, mas ele agora
-          renderiza as abas.
-        */}
         <Stack.Screen
           name="Home"
           component={HomeTabs}
           options={{ headerShown: false }}
+        />
+
+        {/* EscolherPatio agora está no Stack: pode ser chamado por navigation.navigate('EscolherPatio') */}
+        <Stack.Screen
+          name="EscolherPatio"
+          component={ChoosePatioScreen}
+          options={{
+            title: 'Escolher Pátio',
+            headerStyle: { backgroundColor: Colors.mottuDark },
+            headerTintColor: Colors.mottuGreen,
+            headerBackTitleVisible: false,
+          }}
         />
 
         <Stack.Screen

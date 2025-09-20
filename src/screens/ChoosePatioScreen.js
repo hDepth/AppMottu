@@ -9,20 +9,21 @@ import {
   Animated,
   ScrollView,
   SafeAreaView,
+  Image,
 } from 'react-native';
 import { Colors } from '../style/Colors';
 import { useRoute } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
-const ITEM_WIDTH = Math.round(width * 0.66);
-const ITEM_MARGIN = 12;
+const ITEM_WIDTH = Math.round(width * 0.64);
+const ITEM_MARGIN = 14;
 
 const PATIOS = [
-    { id: "A", name: "Pátio A", shape: "grid", color: "#ffdede", emoji: "🏁" },
-    { id: "B", name: "Pátio B", shape: "circle", color: "#dff7df", emoji: "⭕" },
-    { id: "C", name: "Pátio C", shape: "L", color: "#dcecff", emoji: "🦵" },
-    { id: "D", name: "Pátio D", shape: "X", color: "#fff8cc", emoji: "❌" },
-  ];
+  { id: "A", name: "Pátio A", shape: "grid", color: "#112f1f", image: require('../assets/PatioA.png') },
+  { id: "B", name: "Pátio B", shape: "circle", color: "#123041", image: require('../assets/PatioB.png') },
+  { id: "C", name: "Pátio C", shape: "L", color: "#2b123d", image: require('../assets/PatioD.png') },
+  { id: "D", name: "Pátio D", shape: "X", color: "#3a2b12", image: require('../assets/PatioX.png') },
+];
 
 export default function ChoosePatioScreen({ navigation }) {
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -31,25 +32,27 @@ export default function ChoosePatioScreen({ navigation }) {
 
   const onSelectPatio = (patio) => {
     if (route.params?.returnTo === 'AdicionarMoto' || route.params?.from === 'AdicionarMoto') {
-      // Voltando para cadastro de moto, salvar pátio escolhido
+      // Voltando para cadastro de moto
       navigation.navigate('AdicionarMoto', { selectedPatio: patio.name, patioId: patio.id });
       return;
     }
-  
-    // Indo para o mapa de fato
-    navigation.navigate('Mapa', {
-      patioId: patio.id,           // "A", "B", "C", "D"
-      selectedPatio: patio.name,   // "Pátio A", etc
-      shape: patio.shape,          // "grid", "circle", "L", "X"
+
+    // Ir para a aba Mapa (tab) dentro do Home: navegar para Home -> Mapa com params
+    navigation.navigate('Home', {
+      screen: 'Mapa',
+      params: {
+        patioId: patio.id,
+        selectedPatio: patio.name,
+        shape: patio.shape,
+      },
     });
   };
-  
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <Text style={styles.title}>Escolha o Pátio</Text>
-        <TouchableOpacity style={styles.toggleBtn} onPress={() => setGridMode((v) => !v)}>
+        <TouchableOpacity style={styles.toggleBtn} onPress={() => setGridMode(v => !v)}>
           <Text style={styles.toggleTxt}>{gridMode ? 'Carrossel' : 'Grade'}</Text>
         </TouchableOpacity>
       </View>
@@ -61,7 +64,7 @@ export default function ChoosePatioScreen({ navigation }) {
             showsHorizontalScrollIndicator={false}
             snapToInterval={ITEM_WIDTH + ITEM_MARGIN}
             decelerationRate="fast"
-            contentContainerStyle={{ paddingHorizontal: (width - ITEM_WIDTH) / 2 }}
+            contentContainerStyle={{ paddingHorizontal: (width - ITEM_WIDTH) / 2, alignItems: 'center' }}
             onScroll={Animated.event(
               [{ nativeEvent: { contentOffset: { x: scrollX } } }],
               { useNativeDriver: true }
@@ -70,23 +73,20 @@ export default function ChoosePatioScreen({ navigation }) {
           >
             {PATIOS.map((p, i) => {
               const inputRange = [(i - 1) * (ITEM_WIDTH + ITEM_MARGIN), i * (ITEM_WIDTH + ITEM_MARGIN), (i + 1) * (ITEM_WIDTH + ITEM_MARGIN)];
-              const scale = scrollX.interpolate({
-                inputRange,
-                outputRange: [0.9, 1, 0.9],
-                extrapolate: 'clamp',
-              });
-              const opacity = scrollX.interpolate({
-                inputRange,
-                outputRange: [0.7, 1, 0.7],
-                extrapolate: 'clamp',
-              });
+              const scale = scrollX.interpolate({ inputRange, outputRange: [0.9, 1, 0.9], extrapolate: 'clamp' });
+              const opacity = scrollX.interpolate({ inputRange, outputRange: [0.8, 1, 0.8], extrapolate: 'clamp' });
 
               return (
                 <Animated.View key={p.id} style={[styles.itemWrapper, { transform: [{ scale }], opacity, marginRight: ITEM_MARGIN }]}>
-                  <TouchableOpacity activeOpacity={0.85} style={[styles.card, { backgroundColor: p.color }]} onPress={() => onSelectPatio(p)}>
-                    <Text style={styles.emoji}>{p.emoji}</Text>
-                    <Text style={styles.cardTitle}>{p.name}</Text>
-                    <Text style={styles.cardSubtitle}>Abrir mapa do pátio</Text>
+                  <TouchableOpacity activeOpacity={0.92} style={styles.card} onPress={() => onSelectPatio(p)}>
+                    <View style={styles.imageWrap}>
+                      <Image source={p.image} style={styles.patioImage} resizeMode="cover" />
+                      <View style={styles.imageOverlay} />
+                      <Text style={styles.cardBadge}>{p.name}</Text>
+                    </View>
+                    <View style={styles.cardFooter}>
+                      <Text style={styles.cardSubtitle}>Abrir mapa do pátio</Text>
+                    </View>
                   </TouchableOpacity>
                 </Animated.View>
               );
@@ -97,34 +97,53 @@ export default function ChoosePatioScreen({ navigation }) {
         <View style={styles.gridWrap}>
           {PATIOS.map((p) => (
             <TouchableOpacity key={p.id} style={[styles.gridItem, { backgroundColor: p.color }]} onPress={() => onSelectPatio(p)}>
-              <Text style={styles.emoji}>{p.emoji}</Text>
-              <Text style={styles.cardTitle}>{p.name}</Text>
+              <Image source={p.image} style={styles.gridImage} resizeMode="cover" />
+              <Text style={styles.gridTitle}>{p.name}</Text>
             </TouchableOpacity>
           ))}
         </View>
       )}
 
       <View style={styles.footer}>
-        <Text style={styles.hint}>Dica: ao cadastrar uma moto você pode abrir esta tela para escolher o pátio.</Text>
+        <Text style={styles.hint}>Escolha um pátio para abrir ou vincular durante o cadastro.</Text>
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f6fbfc' },
+  safeArea: { flex: 1, backgroundColor: Colors.mottuDark },
   header: { padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { fontSize: 20, fontWeight: '700', color: Colors.mottuDark },
-  toggleBtn: { padding: 8, borderRadius: 8, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#eee' },
-  toggleTxt: { fontWeight: '700', color: Colors.mottuDark },
+  title: { fontSize: 20, fontWeight: '800', color: Colors.mottuGreen },
+  toggleBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, backgroundColor: '#0f1a16' },
+  toggleTxt: { fontWeight: '700', color: Colors.mottuLightGray },
+
   carouselWrap: { flex: 1, justifyContent: 'center' },
   itemWrapper: { width: ITEM_WIDTH, alignItems: 'center' },
-  card: { width: '100%', height: ITEM_WIDTH * 0.7, borderRadius: 14, justifyContent: 'center', alignItems: 'center', padding: 12, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, elevation: 4 },
-  emoji: { fontSize: 36, marginBottom: 8 },
-  cardTitle: { fontSize: 18, fontWeight: '700', color: Colors.mottuDark },
-  cardSubtitle: { fontSize: 12, color: '#444', marginTop: 6 },
-  gridWrap: { flex: 1, padding: 20, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center' },
-  gridItem: { width: (width - 60) / 2, height: (width - 60) / 2, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 20, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, elevation: 3 },
+
+  card: {
+    width: '100%',
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#0b1110',
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  imageWrap: { position: 'relative', height: ITEM_WIDTH * 0.56, width: '100%' },
+  patioImage: { width: '100%', height: '100%' },
+  imageOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(4,8,6,0.25)' },
+  cardBadge: { position: 'absolute', left: 12, bottom: 12, color: '#fff', fontWeight: '800', fontSize: 18 },
+
+  cardFooter: { padding: 12, backgroundColor: '#07100e' },
+  cardSubtitle: { color: Colors.mottuLightGray, fontSize: 13 },
+
+  gridWrap: { flex: 1, padding: 18, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  gridItem: { width: (width - 64) / 2, height: (width - 64) / 2, borderRadius: 12, marginBottom: 18, justifyContent: 'flex-end', overflow: 'hidden' },
+  gridImage: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, width: undefined, height: undefined },
+  gridTitle: { padding: 10, color: '#fff', fontWeight: '700' },
+
   footer: { padding: 14, alignItems: 'center' },
-  hint: { color: '#666', fontSize: 13 },
+  hint: { color: Colors.mottuLightGray, fontSize: 13 },
 });
