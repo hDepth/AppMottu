@@ -29,24 +29,22 @@ const STATUS_OPTIONS = [
   'Aguardando Revisão',
 ];
 const MOTOS_STORAGE_KEY = '@mottuApp:motorcycles';
-const LOCATIONS_STORAGE_KEY = '@mottuApp:locations';
 
 function AddMotorcycleScreen({ navigation, route }) {
   const [selectedModelId, setSelectedModelId] = useState('selecione_modelo');
   const [licensePlate, setLicensePlate] = useState('');
   const [status, setStatus] = useState(STATUS_OPTIONS[0]);
-  const [location, setLocation] = useState('');
   const [loading, setLoading] = useState(false);
-  const [availableLocations, setAvailableLocations] = useState([]);
 
   const [selectedPatio, setSelectedPatio] = useState('');
   const [selectedPatioId, setSelectedPatioId] = useState('');
+  const [areasOptions, setAreasOptions] = useState([]);
+  const [selectedAreaId, setSelectedAreaId] = useState(null);
 
   // Erros
   const [modelError, setModelError] = useState('');
   const [licensePlateError, setLicensePlateError] = useState('');
   const [statusError, setStatusError] = useState('');
-  const [locationError, setLocationError] = useState('');
 
   const currentSelectedModel = BIKE_MODELS.find(
     (model) => model.id === selectedModelId
@@ -56,35 +54,25 @@ function AddMotorcycleScreen({ navigation, route }) {
 
   useFocusEffect(
     React.useCallback(() => {
-      const loadAvailableLocations = async () => {
+      const loadPatioAreas = async () => {
         try {
-          const storedLocations = await AsyncStorage.getItem(
-            LOCATIONS_STORAGE_KEY
-          );
-          if (storedLocations) {
-            setAvailableLocations(JSON.parse(storedLocations));
-          } else {
-            setAvailableLocations([]);
+          if (route.params?.selectedPatio && route.params?.patioId) {
+            setSelectedPatio(route.params.selectedPatio);
+            setSelectedPatioId(route.params.patioId);
+
+            const AREAS_KEY = `@mottuApp:areas_patio_${route.params.patioId}`;
+            const storedAreas = await AsyncStorage.getItem(AREAS_KEY);
+            setAreasOptions(storedAreas ? JSON.parse(storedAreas) : []);
+            setSelectedAreaId(null);
+
+            navigation.setParams({ selectedPatio: undefined, patioId: undefined });
           }
         } catch (error) {
-          console.error(
-            'Erro ao carregar localizações para a tela de adição:',
-            error
-          );
-          Alert.alert('Erro', 'Não foi possível carregar as localizações.');
-        }
-
-        // Captura seleção do pátio retornada da tela EscolherPatio
-        if (route.params?.selectedPatio && route.params?.patioId) {
-          setSelectedPatio(route.params.selectedPatio);
-          setSelectedPatioId(route.params.patioId);
-          navigation.setParams({
-            selectedPatio: undefined,
-            patioId: undefined,
-          });
+          console.error('Erro ao carregar áreas do pátio:', error);
+          Alert.alert('Erro', 'Não foi possível carregar as áreas.');
         }
       };
-      loadAvailableLocations();
+      loadPatioAreas();
     }, [route.params?.selectedPatio, route.params?.patioId])
   );
 
@@ -124,20 +112,10 @@ function AddMotorcycleScreen({ navigation, route }) {
     );
   };
 
-  const handleLocationChange = (value) => {
-    setLocation(value);
-    setLocationError(
-      !value
-        ? 'Por favor, selecione uma área criada ou crie uma nova no Pátio.'
-        : ''
-    );
-  };
-
   const handleSaveMotorcycle = async () => {
     setModelError('');
     setLicensePlateError('');
     setStatusError('');
-    setLocationError('');
 
     let hasError = false;
 
@@ -168,11 +146,6 @@ function AddMotorcycleScreen({ navigation, route }) {
       hasError = true;
     }
 
-    if (!location || location.trim() === '') {
-      setLocationError('Selecione uma área criada ou crie uma nova.');
-      hasError = true;
-    }
-
     if (!selectedPatioId) {
       Alert.alert('Erro', 'Selecione um pátio para cadastrar a moto.');
       hasError = true;
@@ -194,9 +167,9 @@ function AddMotorcycleScreen({ navigation, route }) {
         model: modelName,
         licensePlate,
         status,
-        location: location.trim(),
         patio: selectedPatio || null,
         patioId: selectedPatioId || null,
+        areaId: selectedAreaId || null,
       };
 
       const storedMotos = await AsyncStorage.getItem(MOTOS_STORAGE_KEY);
@@ -220,11 +193,11 @@ function AddMotorcycleScreen({ navigation, route }) {
       setSelectedModelId('selecione_modelo');
       setLicensePlate('');
       setStatus(STATUS_OPTIONS[0]);
-      setLocation('');
       setSelectedPatio('');
       setSelectedPatioId('');
+      setAreasOptions([]);
+      setSelectedAreaId(null);
 
-      // Vai para escolha de pátio
       navigation.navigate('EscolherPatio', { from: 'AdicionarMoto' });
     } catch (error) {
       console.error('Erro ao salvar moto:', error);
@@ -326,47 +299,32 @@ function AddMotorcycleScreen({ navigation, route }) {
               <Text style={AddMotorcycleStyles.errorText}>{statusError}</Text>
             ) : null}
 
-            {/* Área */}
-            <Text style={AddMotorcycleStyles.label}>Área do Pátio:</Text>
-            {availableLocations.length === 0 ? (
-              <View style={{ marginBottom: 10 }}>
-                <Text style={{ color: '#666', marginBottom: 8 }}>
-                  Nenhuma área criada ainda.
+            {/* Áreas do Pátio */}
+            {selectedPatioId ? (
+              <View style={{ marginBottom: 16 }}>
+                <Text style={AddMotorcycleStyles.label}>
+                  Área do {selectedPatio}
                 </Text>
-                <TouchableOpacity
-                  style={[
-                    AddMotorcycleStyles.button,
-                    { backgroundColor: '#ffdd57' },
-                  ]}
-                  onPress={() => navigation.navigate('Mapa')}
-                >
-                  <Text style={{ color: '#000', fontWeight: '700' }}>
-                    Criar área no Pátio
+                {areasOptions.length > 0 ? (
+                  <View style={AddMotorcycleStyles.pickerContainer}>
+                    <Picker
+                      selectedValue={selectedAreaId}
+                      onValueChange={(val) => setSelectedAreaId(val)}
+                      style={AddMotorcycleStyles.picker}
+                      itemStyle={AddMotorcycleStyles.pickerItem}
+                    >
+                      <Picker.Item label="(Sem área específica)" value={null} />
+                      {areasOptions.map((a) => (
+                        <Picker.Item key={a.id} label={a.name} value={a.id} />
+                      ))}
+                    </Picker>
+                  </View>
+                ) : (
+                  <Text style={{ color: '#666', marginBottom: 8 }}>
+                    Nenhuma área criada neste pátio
                   </Text>
-                </TouchableOpacity>
+                )}
               </View>
-            ) : (
-              <View
-                style={[
-                  AddMotorcycleStyles.pickerContainer,
-                  locationError ? AddMotorcycleStyles.inputError : {},
-                ]}
-              >
-                <Picker
-                  selectedValue={location}
-                  onValueChange={handleLocationChange}
-                  style={AddMotorcycleStyles.picker}
-                  itemStyle={AddMotorcycleStyles.pickerItem}
-                >
-                  <Picker.Item label="-- Selecione uma área --" value="" />
-                  {availableLocations.map((loc) => (
-                    <Picker.Item key={loc.id} label={loc.name} value={loc.name} />
-                  ))}
-                </Picker>
-              </View>
-            )}
-            {locationError ? (
-              <Text style={AddMotorcycleStyles.errorText}>{locationError}</Text>
             ) : null}
 
             {/* Seleção de Pátio */}
