@@ -39,6 +39,8 @@ export default function PatioMapScreen() {
   const [tempArea, setTempArea] = useState(null);
   const [nameModalVisible, setNameModalVisible] = useState(false);
   const [newAreaName, setNewAreaName] = useState("");
+  const [tooltipMoto, setTooltipMoto] = useState(null);
+
   const areasRef = useRef({});
 
   useFocusEffect(
@@ -171,6 +173,53 @@ export default function PatioMapScreen() {
     );
   };
 
+  // -------- NOVO: renderizar motos --------
+  function calcDistance(x, y) {
+    const userX = CANVAS_SIZE / 2;
+    const userY = CANVAS_SIZE - 40;
+    const dx = userX - x;
+    const dy = userY - y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    return `${Math.round(dist / 5)} m`;
+  }
+
+  const renderMotoInArea = (m) => {
+    if (!m.areaId) return null;
+    const area = areas.find((a) => a.id === m.areaId);
+    if (!area) return null;
+
+    const margin = 8;
+    const maxCols = Math.max(1, Math.floor((area.width - margin * 2) / 28));
+    const maxRows = Math.max(1, Math.floor((area.height - margin * 2) / 28));
+    const hash = m.id.split('').reduce((s, c) => s + c.charCodeAt(0), 0);
+    const col = hash % maxCols;
+    const row = Math.floor(hash / 7) % maxRows;
+    const x = area.x + margin + col * 28 + 14;
+    const y = area.y + margin + row * 28 + 14;
+
+    let color = Colors.mottuGreen;
+    if (m.status === 'Em Manutenção') color = '#ff9800';
+    else if (m.status === 'Alugada') color = '#f44336';
+    else if (m.status === 'Aguardando Revisão') color = '#2196f3';
+
+    return (
+      <React.Fragment key={`moto-${m.id}`}>
+        <Circle cx={x} cy={y} r={10} fill={color} onPress={() => setTooltipMoto(m)} />
+        <SvgText x={x} y={y + 20} fontSize={9} fill="#111" textAnchor="middle">🛵</SvgText>
+        {tooltipMoto && tooltipMoto.id === m.id && (
+          <>
+            <Rect x={x + 12} y={y - 10} width={140} height={70} fill="#fff" stroke="#333" rx={6} />
+            <SvgText x={x + 16} y={y + 5} fontSize={10} fill="#111">{m.licensePlate}</SvgText>
+            <SvgText x={x + 16} y={y + 18} fontSize={9} fill="#555">{m.model}</SvgText>
+            <SvgText x={x + 16} y={y + 30} fontSize={9} fill={color}>{m.status}</SvgText>
+            <SvgText x={x + 16} y={y + 42} fontSize={9} fill="#777">{area.name}</SvgText>
+            <SvgText x={x + 16} y={y + 54} fontSize={9} fill="#000">Dist: {calcDistance(x, y)}</SvgText>
+          </>
+        )}
+      </React.Fragment>
+    );
+  };
+
   const renderMapShape = () => {
     switch (shape) {
       case "circle":
@@ -194,7 +243,7 @@ export default function PatioMapScreen() {
   };
 
   return (
-    <TouchableWithoutFeedback>
+    <TouchableWithoutFeedback onPress={() => setTooltipMoto(null)}>
       <View style={styles.screen}>
         <View style={styles.header}>
           <Text style={styles.title}>{selectedPatio} <Text style={styles.shapeTag}>• {shape}</Text></Text>
@@ -219,6 +268,10 @@ export default function PatioMapScreen() {
               {renderMapShape()}
               {areas.map(a => renderArea(a))}
               {tempArea && renderArea(tempArea, true)}
+              {motos.map(m => renderMotoInArea(m))}
+              {/* marcador do usuário */}
+              <Circle cx={CANVAS_SIZE / 2} cy={CANVAS_SIZE - 40} r={8} fill="#1976d2" />
+              <SvgText x={CANVAS_SIZE / 2} y={CANVAS_SIZE - 22} fontSize={10} fill="#1976d2" textAnchor="middle">Você</SvgText>
             </Svg>
           </View>
         </View>
