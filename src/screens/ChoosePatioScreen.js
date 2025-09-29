@@ -1,5 +1,5 @@
 // src/screens/ChoosePatioScreen.js
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,18 +7,22 @@ import {
   Dimensions,
   TouchableOpacity,
   Animated,
-  ScrollView,
   SafeAreaView,
   Image,
+  Alert,
 } from 'react-native';
 import { Colors } from '../style/Colors';
 import { useRoute } from '@react-navigation/native';
+
+// 🔗 API
+import { getPatios } from '../services/api';
 
 const { width } = Dimensions.get('window');
 const ITEM_WIDTH = Math.round(width * 0.64);
 const ITEM_MARGIN = 14;
 
-const PATIOS = [
+// 🔙 fallback se API não responder
+const FALLBACK_PATIOS = [
   { id: "A", name: "Pátio A", shape: "grid", color: "#112f1f", image: require('../assets/PatioA.png') },
   { id: "B", name: "Pátio B", shape: "circle", color: "#123041", image: require('../assets/PatioB.png') },
   { id: "C", name: "Pátio C", shape: "L", color: "#2b123d", image: require('../assets/PatioD.png') },
@@ -28,7 +32,35 @@ const PATIOS = [
 export default function ChoosePatioScreen({ navigation }) {
   const scrollX = useRef(new Animated.Value(0)).current;
   const [gridMode, setGridMode] = useState(false);
+  const [patios, setPatios] = useState(FALLBACK_PATIOS);
   const route = useRoute();
+
+  // 🚀 Buscar pátios da API
+  useEffect(() => {
+    const fetchPatios = async () => {
+      try {
+        const data = await getPatios();
+        if (Array.isArray(data) && data.length > 0) {
+          // ⚠️ API não retorna imagem/shape → adicionamos defaults
+          const patiosWithDefaults = data.map((p, idx) => ({
+            id: p.id || idx.toString(),
+            name: p.nome || p.name || `Pátio ${idx + 1}`,
+            shape: p.shape || "grid",
+            color: ["#112f1f", "#123041", "#2b123d", "#3a2b12"][idx % 4],
+            image: FALLBACK_PATIOS[idx % FALLBACK_PATIOS.length].image,
+          }));
+          setPatios(patiosWithDefaults);
+        } else {
+          setPatios(FALLBACK_PATIOS);
+        }
+      } catch (err) {
+        console.error("Erro ao buscar pátios:", err.message);
+        Alert.alert("Aviso", "Não foi possível carregar os pátios da API. Usando padrão local.");
+        setPatios(FALLBACK_PATIOS);
+      }
+    };
+    fetchPatios();
+  }, []);
 
   const onSelectPatio = (patio) => {
     if (route.params?.returnTo === 'AdicionarMoto' || route.params?.from === 'AdicionarMoto') {
@@ -37,7 +69,7 @@ export default function ChoosePatioScreen({ navigation }) {
       return;
     }
 
-    // Ir para a aba Mapa (tab) dentro do Home: navegar para Home -> Mapa com params
+    // Ir para Mapa
     navigation.navigate('Home', {
       screen: 'Mapa',
       params: {
@@ -71,7 +103,7 @@ export default function ChoosePatioScreen({ navigation }) {
             )}
             scrollEventThrottle={16}
           >
-            {PATIOS.map((p, i) => {
+            {patios.map((p, i) => {
               const inputRange = [(i - 1) * (ITEM_WIDTH + ITEM_MARGIN), i * (ITEM_WIDTH + ITEM_MARGIN), (i + 1) * (ITEM_WIDTH + ITEM_MARGIN)];
               const scale = scrollX.interpolate({ inputRange, outputRange: [0.9, 1, 0.9], extrapolate: 'clamp' });
               const opacity = scrollX.interpolate({ inputRange, outputRange: [0.8, 1, 0.8], extrapolate: 'clamp' });
@@ -95,7 +127,7 @@ export default function ChoosePatioScreen({ navigation }) {
         </View>
       ) : (
         <View style={styles.gridWrap}>
-          {PATIOS.map((p) => (
+          {patios.map((p) => (
             <TouchableOpacity key={p.id} style={[styles.gridItem, { backgroundColor: p.color }]} onPress={() => onSelectPatio(p)}>
               <Image source={p.image} style={styles.gridImage} resizeMode="cover" />
               <Text style={styles.gridTitle}>{p.name}</Text>
@@ -141,7 +173,7 @@ const styles = StyleSheet.create({
 
   gridWrap: { flex: 1, padding: 18, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   gridItem: { width: (width - 64) / 2, height: (width - 64) / 2, borderRadius: 12, marginBottom: 18, justifyContent: 'flex-end', overflow: 'hidden' },
-  gridImage: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, width: undefined, height: undefined },
+  gridImage: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 },
   gridTitle: { padding: 10, color: '#fff', fontWeight: '700' },
 
   footer: { padding: 14, alignItems: 'center' },

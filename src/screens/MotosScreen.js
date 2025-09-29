@@ -11,10 +11,7 @@ import {
     TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-// Se você tem MaterialIcons, pode usar:
-// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 import MotosStyles from '../style/MotosScreen';
 import { Colors } from '../style/Colors';
@@ -22,6 +19,14 @@ import { BIKE_MODELS } from '../config/bikeModels';
 import EditMotorcycleModal from '../components/EditMotorcycleModal';
 import FilterModal from '../components/FilterModal';
 
+// 🔗 Serviços da API
+import {
+    getMotos,
+    updateMoto,
+    deleteMoto,
+} from '../services/api';
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
 const MOTOS_STORAGE_KEY = '@mottuApp:motorcycles';
 
 function MotosScreen({ navigation, route }) {
@@ -38,113 +43,89 @@ function MotosScreen({ navigation, route }) {
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
     const [selectedMotorcycle, setSelectedMotorcycle] = useState(null);
 
+    // 🚀 Buscar motos (API + fallback AsyncStorage)
     const loadMotorcycles = async () => {
         setRefreshing(true);
         try {
-            const storedMotos = await AsyncStorage.getItem(MOTOS_STORAGE_KEY);
-            if (storedMotos) {
-                setMotorcycles(JSON.parse(storedMotos));
-            } else {
-                setMotorcycles([]);
-            }
+            const data = await getMotos();
+            setMotorcycles(data);
+            await AsyncStorage.setItem(MOTOS_STORAGE_KEY, JSON.stringify(data));
         } catch (error) {
-            console.error('Erro ao carregar motos do AsyncStorage:', error);
-            Alert.alert('Erro', 'Não foi possível carregar as motos salvas localmente.');
+            console.error('Erro API, usando AsyncStorage:', error.message);
+            const storedMotos = await AsyncStorage.getItem(MOTOS_STORAGE_KEY);
+            setMotorcycles(storedMotos ? JSON.parse(storedMotos) : []);
         } finally {
             setRefreshing(false);
         }
     };
 
+    // 🚀 Atualizar moto via API
     const handleUpdateMotorcycle = async (motoId, updatedFields) => {
         try {
-            const storedMotos = await AsyncStorage.getItem(MOTOS_STORAGE_KEY);
-            let motos = storedMotos ? JSON.parse(storedMotos) : [];
-
-            const updatedMotos = motos.map(moto =>
-                moto.id === motoId ? { ...moto, ...updatedFields } : moto
-            );
-
-            await AsyncStorage.setItem(MOTOS_STORAGE_KEY, JSON.stringify(updatedMotos));
-            // Não atualizamos o estado aqui, pois o closeEditModal fará um loadMotorcycles completo
+            await updateMoto(motoId, updatedFields);
             Alert.alert('Sucesso', 'Moto atualizada com sucesso!');
-            closeEditModal(); // Fecha o modal após a atualização e recarrega
+            closeEditModal();
         } catch (error) {
-            console.error('Erro ao atualizar moto no AsyncStorage:', error);
+            console.error('Erro ao atualizar moto via API:', error.message);
             Alert.alert('Erro', 'Não foi possível atualizar a moto. Tente novamente.');
         }
     };
 
-    // NOVO: Função para excluir moto (passada para o modal)
+    // 🚀 Deletar moto via API
     const handleDeleteMotorcycle = async (motoId) => {
         Alert.alert(
             "Confirmar Exclusão",
-            "Tem certeza que deseja excluir esta moto? Esta ação é irreversível.",
+            "Tem certeza que deseja excluir esta moto?",
             [
-                {
-                    text: "Cancelar",
-                    style: "cancel"
-                },
+                { text: "Cancelar", style: "cancel" },
                 {
                     text: "Excluir",
+                    style: "destructive",
                     onPress: async () => {
                         try {
-                            const storedMotos = await AsyncStorage.getItem(MOTOS_STORAGE_KEY);
-                            let motos = storedMotos ? JSON.parse(storedMotos) : [];
-
-                            const filteredMotos = motos.filter(moto => moto.id !== motoId);
-
-                            await AsyncStorage.setItem(MOTOS_STORAGE_KEY, JSON.stringify(filteredMotos));
+                            await deleteMoto(motoId);
                             Alert.alert('Sucesso', 'Moto excluída com sucesso!');
-                            closeEditModal(); // Fecha o modal após a exclusão e recarrega
+                            closeEditModal();
                         } catch (error) {
-                            console.error('Erro ao excluir moto do AsyncStorage:', error);
-                            Alert.alert('Erro', 'Não foi possível excluir a moto. Tente novamente.');
+                            console.error('Erro ao excluir moto via API:', error.message);
+                            Alert.alert('Erro', 'Não foi possível excluir a moto.');
                         }
-                    },
-                    style: "destructive"
+                    }
                 }
-            ],
-            { cancelable: true }
+            ]
         );
     };
-
 
     useFocusEffect(
         useCallback(() => {
             loadMotorcycles();
-            // Lidar com o filtro inicial vindo da PatioMapScreen
             if (route.params?.initialLocationFilter) {
                 setCurrentLocationFilter(route.params.initialLocationFilter);
-                // Limpa o parâmetro para não aplicar novamente ao voltar para a tela
                 navigation.setParams({ initialLocationFilter: undefined });
             }
         }, [route.params?.initialLocationFilter])
     );
 
+    // 🔍 Aplicar filtros + busca
     const getFilteredAndSortedMotorcycles = () => {
         let filtered = motorcycles;
 
         if (currentStatusFilter !== 'Todos') {
             filtered = filtered.filter(moto => moto.status === currentStatusFilter);
         }
-
         if (currentModelFilter !== 'Todos') {
             filtered = filtered.filter(moto => moto.modelId === currentModelFilter);
         }
-
         if (currentLocationFilter !== 'Todos') {
             filtered = filtered.filter(moto => moto.location === currentLocationFilter);
         }
-
         if (searchText.trim() !== '') {
             const lowerCaseSearchText = searchText.trim().toLowerCase();
             filtered = filtered.filter(moto =>
                 moto.licensePlate.toLowerCase().includes(lowerCaseSearchText)
             );
         }
-
         filtered.sort((a, b) => a.licensePlate.localeCompare(b.licensePlate));
-
         return filtered;
     };
 
@@ -156,53 +137,7 @@ function MotosScreen({ navigation, route }) {
     const closeEditModal = () => {
         setIsEditModalVisible(false);
         setSelectedMotorcycle(null);
-        loadMotorcycles(); // Recarrega as motos para garantir que a lista esteja atualizada após edição/exclusão
-    };
-
-    const openFilterModal = () => setIsFilterModalVisible(true);
-    const closeFilterModal = () => setIsFilterModalVisible(false);
-
-    const handleApplyFilters = (status, model, location) => {
-        setCurrentStatusFilter(status);
-        setCurrentModelFilter(model);
-        setCurrentLocationFilter(location);
-    };
-
-    const renderMotorcycleItem = ({ item }) => {
-        const bikeModel = BIKE_MODELS.find(model => model.id === item.modelId);
-        const imageUrl = bikeModel ? bikeModel.image : require('../assets/Mottu 110i.jpg'); // Certifique-se de que esta imagem existe ou ajuste o caminho
-
-        return (
-            <TouchableOpacity
-                style={MotosStyles.card}
-                onPress={() => openEditModal(item)}
-            >
-                <View style={MotosStyles.imageContainer}>
-                    <Image
-                        source={imageUrl}
-                        style={MotosStyles.motorcycleImage}
-                        resizeMode="cover"
-                    />
-                </View>
-                <View style={MotosStyles.detailsContainer}>
-                    <Text style={MotosStyles.cardTitle}>{item.model}</Text>
-                    <Text style={MotosStyles.cardSubtitle}>Placa: {item.licensePlate}</Text>
-                    <Text style={MotosStyles.cardText}>Local: {item.location}{item.patio ? ` · ${item.patio}` : ''}</Text>
-                    <View style={MotosStyles.statusBadgeContainer}>
-                        <Text style={[
-                            MotosStyles.statusBadge,
-                            item.status === 'Disponível' && MotosStyles.statusAvailable,
-                            item.status === 'Em Manutenção' && MotosStyles.statusMaintenance,
-                            item.status === 'Alugada' && MotosStyles.statusRented,
-                            item.status === 'Aguardando Revisão' && MotosStyles.statusPending,
-                        ]}>
-                            {item.status}
-                        </Text>
-                    </View>
-                </View>
-            </TouchableOpacity>
-
-        );
+        loadMotorcycles();
     };
 
     return (
@@ -210,7 +145,6 @@ function MotosScreen({ navigation, route }) {
             <View style={MotosStyles.container}>
                 <View style={MotosStyles.headerContainer}>
                     <Text style={MotosStyles.headerTitle}>Frota de Motos</Text>
-
                     <TouchableOpacity
                         style={MotosStyles.manageLocationsButton}
                         onPress={() => navigation.navigate('Mapa')}
@@ -228,11 +162,12 @@ function MotosScreen({ navigation, route }) {
                         onChangeText={setSearchText}
                         autoCapitalize="characters"
                     />
-                    <TouchableOpacity style={MotosStyles.filterButtonIcon} onPress={openFilterModal}>
+                    <TouchableOpacity style={MotosStyles.filterButtonIcon} onPress={() => setIsFilterModalVisible(true)}>
                         <Text style={MotosStyles.filterButtonIconText}>Filtros</Text>
                     </TouchableOpacity>
                 </View>
 
+                {/* Chips de filtros */}
                 <View style={MotosStyles.activeFiltersContainer}>
                     {currentStatusFilter !== 'Todos' && (
                         <View style={MotosStyles.activeFilterChip}>
@@ -244,7 +179,9 @@ function MotosScreen({ navigation, route }) {
                     )}
                     {currentModelFilter !== 'Todos' && (
                         <View style={MotosStyles.activeFilterChip}>
-                            <Text style={MotosStyles.activeFilterChipText}>{BIKE_MODELS.find(m => m.id === currentModelFilter)?.name || currentModelFilter}</Text>
+                            <Text style={MotosStyles.activeFilterChipText}>
+                                {BIKE_MODELS.find(m => m.id === currentModelFilter)?.name || currentModelFilter}
+                            </Text>
                             <TouchableOpacity onPress={() => setCurrentModelFilter('Todos')} style={MotosStyles.removeFilterButton}>
                                 <Text style={MotosStyles.removeFilterText}>x</Text>
                             </TouchableOpacity>
@@ -263,12 +200,44 @@ function MotosScreen({ navigation, route }) {
                     )}
                 </View>
 
+                {/* Lista de motos */}
                 <FlatList
                     data={getFilteredAndSortedMotorcycles()}
-                    renderItem={renderMotorcycleItem}
-                    keyExtractor={item => item.id}
+                    renderItem={({ item }) => {
+                        const bikeModel = BIKE_MODELS.find(model => model.id === item.modelId);
+                        const imageUrl = bikeModel ? bikeModel.image : require('../assets/Mottu 110i.jpg');
+                        return (
+                            <TouchableOpacity
+                                style={MotosStyles.card}
+                                onPress={() => openEditModal(item)}
+                            >
+                                <View style={MotosStyles.imageContainer}>
+                                    <Image source={imageUrl} style={MotosStyles.motorcycleImage} resizeMode="cover" />
+                                </View>
+                                <View style={MotosStyles.detailsContainer}>
+                                    <Text style={MotosStyles.cardTitle}>{item.model}</Text>
+                                    <Text style={MotosStyles.cardSubtitle}>Placa: {item.licensePlate}</Text>
+                                    <Text style={MotosStyles.cardText}>
+                                        Local: {item.location}{item.patio ? ` · ${item.patio}` : ''}
+                                    </Text>
+                                    <View style={MotosStyles.statusBadgeContainer}>
+                                        <Text style={[
+                                            MotosStyles.statusBadge,
+                                            item.status === 'Disponível' && MotosStyles.statusAvailable,
+                                            item.status === 'Em Manutenção' && MotosStyles.statusMaintenance,
+                                            item.status === 'Alugada' && MotosStyles.statusRented,
+                                            item.status === 'Aguardando Revisão' && MotosStyles.statusPending,
+                                        ]}>
+                                            {item.status}
+                                        </Text>
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
+                        );
+                    }}
+                    keyExtractor={item => String(item.id)}
                     contentContainerStyle={MotosStyles.listContent}
-                    ListEmptyComponent={<Text style={MotosStyles.emptyListText}>Nenhuma moto para exibir com os filtros atuais. Adicione motos ou mude os filtros/pesquisa.</Text>}
+                    ListEmptyComponent={<Text style={MotosStyles.emptyListText}>Nenhuma moto encontrada.</Text>}
                     refreshControl={
                         <RefreshControl
                             refreshing={refreshing}
@@ -297,8 +266,12 @@ function MotosScreen({ navigation, route }) {
 
             <FilterModal
                 visible={isFilterModalVisible}
-                onClose={closeFilterModal}
-                onApplyFilters={handleApplyFilters}
+                onClose={() => setIsFilterModalVisible(false)}
+                onApplyFilters={(status, model, location) => {
+                    setCurrentStatusFilter(status);
+                    setCurrentModelFilter(model);
+                    setCurrentLocationFilter(location);
+                }}
                 currentStatusFilter={currentStatusFilter}
                 currentModelFilter={currentModelFilter}
                 currentLocationFilter={currentLocationFilter}

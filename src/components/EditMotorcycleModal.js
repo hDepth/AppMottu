@@ -7,31 +7,30 @@ import {
     TextInput,
     TouchableOpacity,
     StyleSheet,
-    ScrollView,
     Image,
     KeyboardAvoidingView,
     Platform,
-    Alert, // Importar Alert
+    Alert,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Para carregar localizações
-import { Colors } from '../style/Colors'; // Suas cores
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Colors } from '../style/Colors';
 import { BIKE_MODELS } from '../config/bikeModels';
+import { updateMoto, deleteMoto } from '../services/api';
 
 const LOCATIONS_STORAGE_KEY = '@mottuApp:locations';
+const MOTOS_STORAGE_KEY = '@mottuApp:motorcycles';
 
-function EditMotorcycleModal({ visible, onClose, motorcycle, onSave, onDelete }) {
+function EditMotorcycleModal({ visible, onClose, motorcycle }) {
     const [editedStatus, setEditedStatus] = useState('');
     const [editedLocation, setEditedLocation] = useState('');
     const [availableLocations, setAvailableLocations] = useState([]);
-    const [isCustomLocation, setIsCustomLocation] = useState(false); // Para alternar entre Picker e TextInput
+    const [isCustomLocation, setIsCustomLocation] = useState(false);
 
     useEffect(() => {
         if (motorcycle) {
             setEditedStatus(motorcycle.status);
             setEditedLocation(motorcycle.location || '');
-            // Verifica se a localização da moto já existe nas predefinidas
-            // se não existir, assume que é uma localização customizada
             checkAndSetCustomLocation(motorcycle.location);
         }
         loadLocations();
@@ -48,7 +47,7 @@ function EditMotorcycleModal({ visible, onClose, motorcycle, onSave, onDelete })
     };
 
     const checkAndSetCustomLocation = async (location) => {
-        if (!location) { // Se não tiver localização definida, não é customizada
+        if (!location) {
             setIsCustomLocation(false);
             return;
         }
@@ -59,32 +58,82 @@ function EditMotorcycleModal({ visible, onClose, motorcycle, onSave, onDelete })
             setIsCustomLocation(!exists);
         } catch (error) {
             console.error('Erro ao verificar localização customizada:', error);
-            setIsCustomLocation(false); // Fallback
+            setIsCustomLocation(false);
         }
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!motorcycle) return;
-        onSave(motorcycle.id, {
-            status: editedStatus,
-            location: editedLocation,
-        });
-        // Não fechamos o modal aqui, onSave (em MotosScreen) já fará isso após a atualização
+
+        try {
+            // 🔹 Tenta atualizar na API
+            await updateMoto(motorcycle.id, {
+                ...motorcycle,
+                status: editedStatus,
+                location: editedLocation,
+            });
+            Alert.alert('Sucesso', 'Moto atualizada com sucesso!');
+        } catch (apiError) {
+            console.error('Erro na API ao atualizar moto:', apiError);
+            // 🔹 Fallback no AsyncStorage
+            try {
+                const storedMotos = await AsyncStorage.getItem(MOTOS_STORAGE_KEY);
+                let motos = storedMotos ? JSON.parse(storedMotos) : [];
+                motos = motos.map(m => (m.id === motorcycle.id ? { ...m, status: editedStatus, location: editedLocation } : m));
+                await AsyncStorage.setItem(MOTOS_STORAGE_KEY, JSON.stringify(motos));
+                Alert.alert('Aviso', 'API indisponível. Moto atualizada localmente.');
+            } catch (storageError) {
+                console.error('Erro ao atualizar moto no AsyncStorage:', storageError);
+                Alert.alert('Erro', 'Não foi possível atualizar a moto.');
+            }
+        } finally {
+            onClose();
+        }
     };
 
-    // NOVO: Função para lidar com a exclusão (chama a prop onDelete)
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (!motorcycle) return;
-        onDelete(motorcycle.id); // Chama a função de exclusão passada por prop
+
+        Alert.alert(
+            "Confirmar Exclusão",
+            "Tem certeza que deseja excluir esta moto?",
+            [
+                { text: "Cancelar", style: "cancel" },
+                {
+                    text: "Excluir",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            // 🔹 Tenta excluir na API
+                            await deleteMoto(motorcycle.id);
+                            Alert.alert('Sucesso', 'Moto excluída com sucesso!');
+                        } catch (apiError) {
+                            console.error('Erro na API ao excluir moto:', apiError);
+                            // 🔹 Fallback no AsyncStorage
+                            try {
+                                const storedMotos = await AsyncStorage.getItem(MOTOS_STORAGE_KEY);
+                                let motos = storedMotos ? JSON.parse(storedMotos) : [];
+                                motos = motos.filter(m => m.id !== motorcycle.id);
+                                await AsyncStorage.setItem(MOTOS_STORAGE_KEY, JSON.stringify(motos));
+                                Alert.alert('Aviso', 'API indisponível. Moto excluída localmente.');
+                            } catch (storageError) {
+                                console.error('Erro ao excluir moto no AsyncStorage:', storageError);
+                                Alert.alert('Erro', 'Não foi possível excluir a moto.');
+                            }
+                        } finally {
+                            onClose();
+                        }
+                    }
+                }
+            ]
+        );
     };
 
-    // Imagem da moto no modal (reutilizando a lógica da MotosScreen)
     const getBikeImage = () => {
-        if (!motorcycle) return require('../assets/Mottu 110i.jpg'); // Imagem padrão
+        if (!motorcycle) return require('../assets/Mottu 110i.jpg');
         const bikeModel = BIKE_MODELS.find(model => model.id === motorcycle.modelId);
         return bikeModel ? bikeModel.image : require('../assets/Mottu 110i.jpg');
     };
-
 
     return (
         <Modal
@@ -101,11 +150,7 @@ function EditMotorcycleModal({ visible, onClose, motorcycle, onSave, onDelete })
                     <Text style={modalStyles.modalTitle}>Editar Moto</Text>
 
                     <View style={modalStyles.imageContainer}>
-                        <Image
-                            source={getBikeImage()}
-                            style={modalStyles.motorcycleImage}
-                            resizeMode="cover"
-                        />
+                        <Image source={getBikeImage()} style={modalStyles.motorcycleImage} resizeMode="cover" />
                     </View>
 
                     <Text style={modalStyles.label}>Modelo: {motorcycle?.model}</Text>
@@ -113,13 +158,7 @@ function EditMotorcycleModal({ visible, onClose, motorcycle, onSave, onDelete })
 
                     <Text style={modalStyles.label}>Status:</Text>
                     <View style={modalStyles.pickerContainer}>
-                        <Picker
-                            selectedValue={editedStatus}
-                            onValueChange={(itemValue) => setEditedStatus(itemValue)}
-                            style={modalStyles.picker}
-                            itemStyle={modalStyles.pickerItem}
-                            mode="dropdown"
-                        >
+                        <Picker selectedValue={editedStatus} onValueChange={setEditedStatus} style={modalStyles.picker} mode="dropdown">
                             <Picker.Item label="Disponível" value="Disponível" />
                             <Picker.Item label="Em Manutenção" value="Em Manutenção" />
                             <Picker.Item label="Alugada" value="Alugada" />
@@ -134,14 +173,13 @@ function EditMotorcycleModal({ visible, onClose, motorcycle, onSave, onDelete })
                             onValueChange={(itemValue) => {
                                 if (itemValue === "custom") {
                                     setIsCustomLocation(true);
-                                    setEditedLocation(''); // Limpa para nova entrada
+                                    setEditedLocation('');
                                 } else {
                                     setIsCustomLocation(false);
                                     setEditedLocation(itemValue);
                                 }
                             }}
                             style={modalStyles.picker}
-                            itemStyle={modalStyles.pickerItem}
                             mode="dropdown"
                         >
                             <Picker.Item label="-- Selecione ou digite --" value="" />
@@ -155,23 +193,12 @@ function EditMotorcycleModal({ visible, onClose, motorcycle, onSave, onDelete })
                     {isCustomLocation && (
                         <TextInput
                             style={modalStyles.input}
-                            placeholder="Nova Localização (Ex: Pátio A vaga 52)"
+                            placeholder="Nova Localização"
                             placeholderTextColor={Colors.mottuLightGray}
                             value={editedLocation}
                             onChangeText={setEditedLocation}
-                            autoCapitalize="words"
                         />
                     )}
-                    {/* Se a localização atual da moto não estiver nas predefinidas e não for customizada, mostra o input */}
-                    {!isCustomLocation && motorcycle?.location && !availableLocations.some(loc => loc.name === motorcycle.location) && (
-                        <TextInput
-                            style={modalStyles.input}
-                            value={motorcycle.location}
-                            editable={false} // Não editável, apenas exibido
-                            placeholderTextColor={Colors.mottuLightGray}
-                        />
-                    )}
-
 
                     <View style={modalStyles.buttonContainer}>
                         <TouchableOpacity style={modalStyles.cancelButton} onPress={onClose}>
@@ -182,145 +209,13 @@ function EditMotorcycleModal({ visible, onClose, motorcycle, onSave, onDelete })
                         </TouchableOpacity>
                     </View>
 
-                    {/* NOVO: Botão de Excluir */}
                     <TouchableOpacity style={modalStyles.deleteButton} onPress={handleDelete}>
                         <Text style={modalStyles.deleteButtonText}>Excluir Moto</Text>
                     </TouchableOpacity>
-
                 </View>
             </KeyboardAvoidingView>
         </Modal>
     );
 }
-
-// Estilos para o EditMotorcycleModal
-const modalStyles = StyleSheet.create({
-    centeredView: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    },
-    modalView: {
-        width: '90%',
-        backgroundColor: Colors.mottuWhite,
-        borderRadius: 20,
-        padding: 25,
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 5,
-    },
-    modalTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: Colors.mottuDark,
-        marginBottom: 20,
-    },
-    imageContainer: {
-        width: '100%',
-        height: 150,
-        borderRadius: 10,
-        overflow: 'hidden',
-        marginBottom: 15,
-        backgroundColor: Colors.mottuGray,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    motorcycleImage: {
-        width: '100%',
-        height: '100%',
-        resizeMode: 'cover',
-    },
-    label: {
-        fontSize: 16,
-        color: Colors.mottuDark,
-        alignSelf: 'flex-start',
-        marginBottom: 5,
-        marginTop: 10,
-        fontWeight: '600',
-    },
-    pickerContainer: {
-        width: '100%',
-        backgroundColor: Colors.mottuLightGray,
-        borderRadius: 10,
-        marginBottom: 15,
-        overflow: 'hidden', // Para garantir que o Picker respeite o borderRadius
-    },
-    picker: {
-        width: '100%',
-        color: Colors.mottuDark, // Cor do texto selecionado
-    },
-    pickerItem: {
-        color: Colors.mottuDark, // Cor do texto das opções no iOS
-    },
-    input: {
-        width: '100%',
-        height: 50,
-        backgroundColor: Colors.mottuLightGray,
-        borderRadius: 10,
-        paddingHorizontal: 15,
-        fontSize: 16,
-        color: Colors.mottuDark,
-        marginBottom: 15,
-    },
-    buttonContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        width: '100%',
-        marginTop: 20,
-    },
-    cancelButton: {
-        backgroundColor: Colors.mottuGray,
-        borderRadius: 10,
-        paddingVertical: 12,
-        paddingHorizontal: 25,
-        minWidth: 120,
-        alignItems: 'center',
-    },
-    cancelButtonText: {
-        color: Colors.mottuDark,
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    saveButton: {
-        backgroundColor: Colors.mottuGreen,
-        borderRadius: 10,
-        paddingVertical: 12,
-        paddingHorizontal: 25,
-        minWidth: 120,
-        alignItems: 'center',
-    },
-    saveButtonText: {
-        color: Colors.mottuDark,
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    // NOVO: Estilos para o botão de exclusão no modal
-    deleteButton: {
-        backgroundColor: Colors.mottuRed, // Cor vermelha para exclusão
-        borderRadius: 10,
-        paddingVertical: 12,
-        paddingHorizontal: 25,
-        width: '100%', // Largura total
-        alignItems: 'center',
-        marginTop: 15, // Espaçamento superior
-        shadowColor: Colors.mottuDark,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
-        elevation: 5,
-    },
-    deleteButtonText: {
-        color: Colors.mottuWhite,
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-});
 
 export default EditMotorcycleModal;

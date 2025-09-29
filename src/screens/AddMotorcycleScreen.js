@@ -21,6 +21,9 @@ import AddMotorcycleStyles from '../style/AddMotorcycleScreen';
 import { Colors } from '../style/Colors';
 import { BIKE_MODELS } from '../config/bikeModels';
 
+// 🔗 API
+import { createMoto } from '../services/api';
+
 const STATUS_OPTIONS = [
   'Selecione um status',
   'Disponível',
@@ -46,9 +49,7 @@ function AddMotorcycleScreen({ navigation, route }) {
   const [licensePlateError, setLicensePlateError] = useState('');
   const [statusError, setStatusError] = useState('');
 
-  const currentSelectedModel = BIKE_MODELS.find(
-    (model) => model.id === selectedModelId
-  );
+  const currentSelectedModel = BIKE_MODELS.find((model) => model.id === selectedModelId);
   const modelName = currentSelectedModel ? currentSelectedModel.name : '';
   const modelImage = currentSelectedModel ? currentSelectedModel.image : null;
 
@@ -79,9 +80,7 @@ function AddMotorcycleScreen({ navigation, route }) {
   const handleModelChange = (itemValue) => {
     setSelectedModelId(itemValue);
     setModelError(
-      itemValue === 'selecione_modelo'
-        ? 'Por favor, selecione um modelo de moto.'
-        : ''
+      itemValue === 'selecione_modelo' ? 'Por favor, selecione um modelo de moto.' : ''
     );
   };
 
@@ -90,14 +89,8 @@ function AddMotorcycleScreen({ navigation, route }) {
     setLicensePlate(up);
     const plateRegex = /^[A-Z]{3}-\d{4}$/;
     const mercosulRegex = /^[A-Z]{3}\d[A-Z0-9]\d{2}$/;
-    if (
-      up.length > 0 &&
-      !plateRegex.test(up) &&
-      !mercosulRegex.test(up)
-    ) {
-      setLicensePlateError(
-        'Formato de placa inválido (ex: ABC-1234 ou ABC1D23).'
-      );
+    if (up.length > 0 && !plateRegex.test(up) && !mercosulRegex.test(up)) {
+      setLicensePlateError('Formato inválido (ABC-1234 ou ABC1D23).');
     } else {
       setLicensePlateError('');
     }
@@ -106,9 +99,7 @@ function AddMotorcycleScreen({ navigation, route }) {
   const handleStatusChange = (itemValue) => {
     setStatus(itemValue);
     setStatusError(
-      itemValue === STATUS_OPTIONS[0]
-        ? 'Por favor, selecione um status válido.'
-        : ''
+      itemValue === STATUS_OPTIONS[0] ? 'Por favor, selecione um status válido.' : ''
     );
   };
 
@@ -123,46 +114,25 @@ function AddMotorcycleScreen({ navigation, route }) {
       setModelError('Modelo é obrigatório.');
       hasError = true;
     }
-
     if (!licensePlate.trim()) {
       setLicensePlateError('Placa é obrigatória.');
       hasError = true;
-    } else {
-      const plateRegex = /^[A-Z]{3}-\d{4}$/;
-      const mercosulRegex = /^[A-Z]{3}\d[A-Z0-9]\d{2}$/;
-      if (
-        !plateRegex.test(licensePlate) &&
-        !mercosulRegex.test(licensePlate)
-      ) {
-        setLicensePlateError(
-          'Formato de placa inválido (ex: ABC-1234 ou ABC1D23).'
-        );
-        hasError = true;
-      }
     }
-
     if (status === STATUS_OPTIONS[0]) {
       setStatusError('Status é obrigatório.');
       hasError = true;
     }
-
     if (!selectedPatioId) {
       Alert.alert('Erro', 'Selecione um pátio para cadastrar a moto.');
       hasError = true;
     }
-
     if (hasError) {
-      Alert.alert(
-        'Erro de Validação',
-        'Por favor, corrija os campos destacados.'
-      );
-      return;
+      return Alert.alert('Erro de Validação', 'Corrija os campos destacados.');
     }
 
     setLoading(true);
     try {
       const newMotorcycle = {
-        id: Date.now().toString(),
         modelId: selectedModelId,
         model: modelName,
         licensePlate,
@@ -172,24 +142,28 @@ function AddMotorcycleScreen({ navigation, route }) {
         areaId: selectedAreaId || null,
       };
 
-      const storedMotos = await AsyncStorage.getItem(MOTOS_STORAGE_KEY);
-      let motos = storedMotos ? JSON.parse(storedMotos) : [];
+      // 🚀 Envia para API
+      try {
+        await createMoto(newMotorcycle);
+      } catch (err) {
+        console.error("API falhou, salvando local:", err.message);
+        const storedMotos = await AsyncStorage.getItem(MOTOS_STORAGE_KEY);
+        let motos = storedMotos ? JSON.parse(storedMotos) : [];
 
-      const plateAlreadyExists = motos.some(
-        (moto) => moto.licensePlate === newMotorcycle.licensePlate
-      );
-      if (plateAlreadyExists) {
-        Alert.alert('Erro', 'Já existe uma moto com esta placa.');
-        setLoading(false);
-        return;
+        const plateAlreadyExists = motos.some(
+          (moto) => moto.licensePlate === newMotorcycle.licensePlate
+        );
+        if (plateAlreadyExists) {
+          setLoading(false);
+          return Alert.alert('Erro', 'Já existe uma moto com esta placa.');
+        }
+        motos.push({ id: Date.now().toString(), ...newMotorcycle });
+        await AsyncStorage.setItem(MOTOS_STORAGE_KEY, JSON.stringify(motos));
       }
-
-      motos.push(newMotorcycle);
-      await AsyncStorage.setItem(MOTOS_STORAGE_KEY, JSON.stringify(motos));
 
       Alert.alert('Sucesso!', 'Moto adicionada com sucesso!');
 
-      // Limpar
+      // Resetar
       setSelectedModelId('selecione_modelo');
       setLicensePlate('');
       setStatus(STATUS_OPTIONS[0]);
@@ -214,9 +188,7 @@ function AddMotorcycleScreen({ navigation, route }) {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView contentContainerStyle={AddMotorcycleStyles.container}>
-          <Text style={AddMotorcycleStyles.headerTitle}>
-            Adicionar Nova Moto
-          </Text>
+          <Text style={AddMotorcycleStyles.headerTitle}>Adicionar Nova Moto</Text>
 
           <View style={AddMotorcycleStyles.formContainer}>
             {modelImage && (
@@ -244,17 +216,11 @@ function AddMotorcycleScreen({ navigation, route }) {
                 itemStyle={AddMotorcycleStyles.pickerItem}
               >
                 {BIKE_MODELS.map((model) => (
-                  <Picker.Item
-                    key={model.id}
-                    label={model.name}
-                    value={model.id}
-                  />
+                  <Picker.Item key={model.id} label={model.name} value={model.id} />
                 ))}
               </Picker>
             </View>
-            {modelError ? (
-              <Text style={AddMotorcycleStyles.errorText}>{modelError}</Text>
-            ) : null}
+            {modelError ? <Text style={AddMotorcycleStyles.errorText}>{modelError}</Text> : null}
 
             {/* Placa */}
             <Text style={AddMotorcycleStyles.label}>Placa:</Text>
@@ -267,13 +233,10 @@ function AddMotorcycleScreen({ navigation, route }) {
               placeholderTextColor={Colors.mottuLightGray}
               value={licensePlate}
               onChangeText={validateLicensePlate}
-              maxLength={7}
               autoCapitalize="characters"
             />
             {licensePlateError ? (
-              <Text style={AddMotorcycleStyles.errorText}>
-                {licensePlateError}
-              </Text>
+              <Text style={AddMotorcycleStyles.errorText}>{licensePlateError}</Text>
             ) : null}
 
             {/* Status */}
@@ -295,16 +258,12 @@ function AddMotorcycleScreen({ navigation, route }) {
                 ))}
               </Picker>
             </View>
-            {statusError ? (
-              <Text style={AddMotorcycleStyles.errorText}>{statusError}</Text>
-            ) : null}
+            {statusError ? <Text style={AddMotorcycleStyles.errorText}>{statusError}</Text> : null}
 
             {/* Áreas do Pátio */}
             {selectedPatioId ? (
               <View style={{ marginBottom: 16 }}>
-                <Text style={AddMotorcycleStyles.label}>
-                  Área do {selectedPatio}
-                </Text>
+                <Text style={AddMotorcycleStyles.label}>Área do {selectedPatio}</Text>
                 {areasOptions.length > 0 ? (
                   <View style={AddMotorcycleStyles.pickerContainer}>
                     <Picker
@@ -327,38 +286,23 @@ function AddMotorcycleScreen({ navigation, route }) {
               </View>
             ) : null}
 
-            {/* Seleção de Pátio */}
-            <View
-              style={{
-                marginTop: 12,
-                marginBottom: 6,
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
+            {/* Pátio */}
+            <View style={{ marginTop: 12, marginBottom: 6, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text style={{ color: '#444' }}>
                 Pátio: {selectedPatio ? selectedPatio : 'Nenhum selecionado'}
               </Text>
               <TouchableOpacity
                 onPress={() =>
-                  navigation.navigate('EscolherPatio', {
-                    returnTo: 'AdicionarMoto',
-                  })
+                  navigation.navigate('EscolherPatio', { returnTo: 'AdicionarMoto' })
                 }
               >
-                <Text
-                  style={{
-                    color: Colors.mottuGreen,
-                    fontWeight: '700',
-                  }}
-                >
+                <Text style={{ color: Colors.mottuGreen, fontWeight: '700' }}>
                   {selectedPatio ? 'Alterar pátio' : 'Escolher pátio'}
                 </Text>
               </TouchableOpacity>
             </View>
 
-            {/* Botão Salvar */}
+            {/* Botão */}
             <TouchableOpacity
               style={AddMotorcycleStyles.button}
               onPress={handleSaveMotorcycle}
