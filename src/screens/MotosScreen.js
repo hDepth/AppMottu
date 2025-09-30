@@ -108,26 +108,32 @@ function MotosScreen({ navigation, route }) {
 
     // 🔍 Aplicar filtros + busca
     const getFilteredAndSortedMotorcycles = () => {
-        let filtered = motorcycles;
+    let filtered = motorcycles;
 
-        if (currentStatusFilter !== 'Todos') {
-            filtered = filtered.filter(moto => moto.status === currentStatusFilter);
-        }
-        if (currentModelFilter !== 'Todos') {
-            filtered = filtered.filter(moto => moto.modelId === currentModelFilter);
-        }
-        if (currentLocationFilter !== 'Todos') {
-            filtered = filtered.filter(moto => moto.location === currentLocationFilter);
-        }
-        if (searchText.trim() !== '') {
-            const lowerCaseSearchText = searchText.trim().toLowerCase();
-            filtered = filtered.filter(moto =>
-                moto.licensePlate.toLowerCase().includes(lowerCaseSearchText)
-            );
-        }
-        filtered.sort((a, b) => a.licensePlate.localeCompare(b.licensePlate));
-        return filtered;
-    };
+    if (currentStatusFilter !== 'Todos') {
+        filtered = filtered.filter(moto => moto.status === currentStatusFilter);
+    }
+
+    if (currentModelFilter !== 'Todos') {
+        filtered = filtered.filter(moto => moto.modelId === currentModelFilter);
+    }
+
+    if (currentLocationFilter !== 'Todos') {
+        filtered = filtered.filter(moto => moto.location === currentLocationFilter);
+    }
+
+    if (searchText.trim() !== '') {
+        const lowerCaseSearchText = searchText.trim().toLowerCase();
+        filtered = filtered.filter(moto =>
+            (moto.licensePlate || "").toLowerCase().includes(lowerCaseSearchText)
+        );
+    }
+
+    // 🔹 Ajuste aqui
+    filtered.sort((a, b) => (a.licensePlate || "").localeCompare(b.licensePlate || ""));
+
+    return filtered;
+};
 
     const openEditModal = (moto) => {
         setSelectedMotorcycle(moto);
@@ -235,7 +241,7 @@ function MotosScreen({ navigation, route }) {
                             </TouchableOpacity>
                         );
                     }}
-                    keyExtractor={item => String(item.id)}
+                    keyExtractor={(item, index) => item?.id ? String(item.id) :item?.licensePlate ? `plate-${item.licensePlate}` :`moto-${index}`}
                     contentContainerStyle={MotosStyles.listContent}
                     ListEmptyComponent={<Text style={MotosStyles.emptyListText}>Nenhuma moto encontrada.</Text>}
                     refreshControl={
