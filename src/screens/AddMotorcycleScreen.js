@@ -59,7 +59,7 @@ function AddMotorcycleScreen({ navigation, route }) {
         try {
           if (route.params?.selectedPatio && route.params?.patioId) {
             setSelectedPatio(route.params.selectedPatio);
-            setSelectedPatioId(route.params.patioId);
+            setSelectedPatioId(route.params.patioId.toString());
 
             const AREAS_KEY = `@mottuApp:areas_patio_${route.params.patioId}`;
             const storedAreas = await AsyncStorage.getItem(AREAS_KEY);
@@ -104,82 +104,101 @@ function AddMotorcycleScreen({ navigation, route }) {
   };
 
   const handleSaveMotorcycle = async () => {
-    setModelError('');
-    setLicensePlateError('');
-    setStatusError('');
+  setModelError('');
+  setLicensePlateError('');
+  setStatusError('');
 
-    let hasError = false;
+  let hasError = false;
 
-    if (selectedModelId === 'selecione_modelo') {
-      setModelError('Modelo é obrigatório.');
-      hasError = true;
-    }
-    if (!licensePlate.trim()) {
-      setLicensePlateError('Placa é obrigatória.');
-      hasError = true;
-    }
-    if (status === STATUS_OPTIONS[0]) {
-      setStatusError('Status é obrigatório.');
-      hasError = true;
-    }
-    if (!selectedPatioId) {
-      Alert.alert('Erro', 'Selecione um pátio para cadastrar a moto.');
-      hasError = true;
-    }
-    if (hasError) {
-      return Alert.alert('Erro de Validação', 'Corrija os campos destacados.');
-    }
+  if (selectedModelId === 'selecione_modelo') {
+    setModelError('Modelo é obrigatório.');
+    hasError = true;
+  }
+  if (!licensePlate.trim()) {
+    setLicensePlateError('Placa é obrigatória.');
+    hasError = true;
+  }
+  if (status === STATUS_OPTIONS[0]) {
+    setStatusError('Status é obrigatório.');
+    hasError = true;
+  }
+  if (!selectedPatioId || selectedPatioId.trim() === '') {
+    Alert.alert('Erro', 'Selecione um pátio para cadastrar a moto.');
+    hasError = true;
+  }
+  if (hasError) {
+    return Alert.alert('Erro de Validação', 'Corrija os campos destacados.');
+  }
 
-    setLoading(true);
+  setLoading(true);
+  try {
+    // 🔗 Payload para a API (nomes esperados pelo .NET)
+    const newMotorcycle = {
+      placa: licensePlate,
+      modelo: modelName,
+      ano: new Date().getFullYear(),
+      patioId: parseInt(selectedPatioId, 10),
+    };
+
+    console.log("selectedPatioId atual:", selectedPatioId);
+
+    console.log("Payload enviado para API:", newMotorcycle);
+
     try {
-      const newMotorcycle = {
-        modelId: selectedModelId,
-        model: modelName,
-        licensePlate,
-        status,
-        patio: selectedPatio || null,
-        patioId: selectedPatioId || null,
-        areaId: selectedAreaId || null,
-      };
+      await createMoto(newMotorcycle);
+    } catch (err) {
+      console.error("API falhou, salvando local:", err.response?.data || err.message);
 
-      // 🚀 Envia para API
-      try {
-        await createMoto(newMotorcycle);
-      } catch (err) {
-        console.error("API falhou, salvando local:", err.message);
-        const storedMotos = await AsyncStorage.getItem(MOTOS_STORAGE_KEY);
-        let motos = storedMotos ? JSON.parse(storedMotos) : [];
+      const storedMotos = await AsyncStorage.getItem(MOTOS_STORAGE_KEY);
+      let motos = storedMotos ? JSON.parse(storedMotos) : [];
 
-        const plateAlreadyExists = motos.some(
-          (moto) => moto.licensePlate === newMotorcycle.licensePlate
-        );
-        if (plateAlreadyExists) {
-          setLoading(false);
-          return Alert.alert('Erro', 'Já existe uma moto com esta placa.');
-        }
-        motos.push({ id: Date.now().toString(), ...newMotorcycle });
-        await AsyncStorage.setItem(MOTOS_STORAGE_KEY, JSON.stringify(motos));
+      // ⚡ Checa duplicidade local usando licensePlate
+      const plateAlreadyExists = motos.some(
+        (moto) => moto.licensePlate === licensePlate
+      );
+      if (plateAlreadyExists) {
+        setLoading(false);
+        return Alert.alert('Erro', 'Já existe uma moto com esta placa.');
       }
 
-      Alert.alert('Sucesso!', 'Moto adicionada com sucesso!');
+      // Salvar no formato local
+      motos.push({
+        id: Date.now().toString(),
+        licensePlate,
+        model: modelName,
+        status,
+        patio: selectedPatio,
+        patioId: selectedPatioId,
+        areaId: selectedAreaId,
+      });
 
-      // Resetar
-      setSelectedModelId('selecione_modelo');
-      setLicensePlate('');
-      setStatus(STATUS_OPTIONS[0]);
-      setSelectedPatio('');
-      setSelectedPatioId('');
-      setAreasOptions([]);
-      setSelectedAreaId(null);
-
-      navigation.navigate('EscolherPatio', { from: 'AdicionarMoto' });
-    } catch (error) {
-      console.error('Erro ao salvar moto:', error);
-      Alert.alert('Erro', 'Não foi possível salvar a moto.');
-    } finally {
-      setLoading(false);
+      await AsyncStorage.setItem(MOTOS_STORAGE_KEY, JSON.stringify(motos));
     }
-  };
+
+    Alert.alert('Sucesso!', 'Moto adicionada com sucesso!');
+
+    // Resetar formulário
+    setSelectedModelId('selecione_modelo');
+    setLicensePlate('');
+    setStatus(STATUS_OPTIONS[0]);
+    setSelectedPatio('');
+    setSelectedPatioId('');
+    setAreasOptions([]);
+    setSelectedAreaId(null);
+
+    // ✅ Redirecionar direto para Home (limpa pilha)
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Home' }],
+    });
+  } catch (error) {
+    console.error('Erro ao salvar moto:', error);
+    Alert.alert('Erro', 'Não foi possível salvar a moto.');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <SafeAreaView style={AddMotorcycleStyles.safeArea}>

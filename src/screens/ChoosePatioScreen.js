@@ -64,8 +64,11 @@ export default function ChoosePatioScreen({ navigation }) {
 
   const onSelectPatio = (patio) => {
     if (route.params?.returnTo === 'AdicionarMoto' || route.params?.from === 'AdicionarMoto') {
-      // Voltando para cadastro de moto
-      navigation.navigate('AdicionarMoto', { selectedPatio: patio.name, patioId: patio.id });
+      navigation.navigate({
+  name: 'AdicionarMoto',
+  params: { selectedPatio: patio.name, patioId: patio.id },
+  merge: true, 
+});
       return;
     }
 
