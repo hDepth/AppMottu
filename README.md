@@ -1,157 +1,162 @@
-📌 Proposta do Projeto
+# 🛵 MottuGestor – Mapeamento Digital de Motos em Pátios
 
-O AppMottu foi desenvolvido com o objetivo de facilitar a gestão de motos e pátios de uma frota, permitindo que administradores e operadores tenham uma visão clara da disponibilidade e movimentação dos veículos.
+> Challenge FIAP – 2TDS | Fevereiro 2025 – 1º Semestre  
 
-A solução conecta um aplicativo mobile a um backend em Node.js que integra diretamente com um banco de dados Oracle, garantindo persistência e confiabilidade das informações.
+Aplicativo em **React Native (Expo)** para **gestão digital de motos em pátios da Mottu**, com:
+- Mapa interativo em **SVG + Grid 2D**
+- CRUD de motos
+- Criação de áreas em pátios
+- Autenticação com **API Node.js + Oracle**
+- Integração parcial com **API .NET 8**
 
-Assim, o sistema substitui soluções baseadas em armazenamento local (AsyncStorage) por um banco relacional robusto, permitindo múltiplos usuários, consistência de dados e maior escalabilidade.
+---
 
-⚙️ Funcionalidades
-🔐 Autenticação
+## 📖 Resumo da Proposta
 
-Login seguro com usuários cadastrados diretamente no banco Oracle.
+O **MottuGestor** foi desenvolvido para resolver o desafio de **organizar e monitorar digitalmente motos em pátios**.  
 
-Validação de credenciais no backend sem uso de JWT.
+### Problema:
+A Mottu precisa **mapear e controlar motos** em diferentes pátios, com informações de status e localização, de forma prática.
 
-🏍️ Gestão de Motos
+### Solução:
+- **Visualização interativa** de pátios em formato de mapa.
+- **Áreas personalizadas** que podem ser criadas, movidas e redimensionadas.
+- **Motos cadastradas** associadas às áreas, exibidas com status e cálculo de distância simulada até o usuário.
+- **Autenticação segura** via API caseira em Node.js + Oracle.
+- **Integração com API .NET** para operações de CRUD (parcialmente implementada).
 
-Cadastro de novas motos.
+---
 
-Listagem de todas as motos.
+## 🗂 Estrutura do Projeto
 
-Edição e exclusão de registros.
+📦 AppMottu
+┣ 📂 src
+┃ ┣ 📂 screens # Telas principais (Motos, Pátios, Mapas, Login)
+┃ ┣ 📂 components # Componentes reutilizáveis (Modais, Cards, Tooltips)
+┃ ┣ 📂 services # Integração com APIs (.NET e Node.js)
+┃ ┣ 📂 style # Definições de estilos e cores
+┃ ┗ 📂 config # Configurações auxiliares (modelos de motos, etc.)
+┣ 📂 backend # API caseira em Node.js + Oracle (autenticação)
+┣ 📂 MottuGestor.API# API em .NET 8 (motos e pátios)
+┗ README.md
 
-Associação de motos a um pátio.
+markdown
+Copiar código
 
-🅿️ Gestão de Pátios
+---
 
-Cadastro de pátios (nome, localização, capacidade).
+## 🚀 Funcionalidades
 
-Listagem de pátios cadastrados.
+✅ **CRUD de Motos**  
+- Cadastrar, listar, editar e excluir motos  
+- Associação de motos a áreas/pátios  
+- Status coloridos: Disponível, Em Manutenção, Alugada, Aguardando Revisão  
 
-Visualização das motos vinculadas a um pátio.
+✅ **Gestão de Pátios e Áreas**  
+- 4 pátios disponíveis  
+- Criar áreas customizadas dentro dos pátios  
+- Áreas podem ser movidas e redimensionadas livremente  
 
-📊 Outras Funcionalidades
+✅ **Mapa em Grid 2D (SVG)**  
+- Simulação visual da disposição das motos  
+- Tooltip com informações (modelo, placa, status, área, distância simulada)  
 
-Atualização em tempo real entre app e backend.
+✅ **Autenticação**  
+- Registro e login de usuários  
+- Senhas armazenadas com hash (bcrypt) no Oracle  
 
-Persistência completa no banco de dados Oracle.
+✅ **Integração API**  
+- **Branch `MapaSvgGrid2D`** → uso 100% local com AsyncStorage (mais completa e estável).  
+- **Branch `IntegracaoApiOracle`** → integração com API .NET 8 (CRUD de motos e pátios) + API caseira Node.js (login).  
 
-Estrutura pronta para escalabilidade (mais pátios, mais veículos, mais usuários).
+---
 
-📂 Estrutura do Projeto
-AppMottu/
-│── app/                  # Código do aplicativo mobile (React Native / Expo)
-│   ├── screens/          # Telas do app (Login, Home, Motos, Pátios)
-│   ├── components/       # Componentes reutilizáveis
-│   ├── services/         # Integração com API
-│   └── App.tsx           # Ponto de entrada do app
-│
-│── server/               # Backend (Node.js + Express + OracleDB)
-│   ├── src/
-│   │   ├── config/       # Configurações de banco
-│   │   ├── routes/       # Rotas da API
-│   │   ├── controllers/  # Lógica das rotas
-│   │   └── index.js      # Ponto de entrada do servidor
-│
-│── database/             # Scripts SQL
-│   ├── create_tables.sql # Criação de tabelas
-│   └── seed.sql          # Dados de exemplo
-│
-│── README.md             # Documentação do projeto
+## ⚙️ Pré-requisitos
 
-👥 Integrantes do Grupo
+- [Node.js](https://nodejs.org/) (>= 18)  
+- [Expo CLI](https://docs.expo.dev/)  
+- [Android Studio](https://developer.android.com/studio) (para emulador Android)  
+- [Oracle Client](https://www.oracle.com/database/technologies/instant-client.html) (para API Node.js)  
+- [.NET 8 SDK](https://dotnet.microsoft.com/en-us/download) (para API .NET)  
 
-Pedro de Paula – RM: 558833 – GitHub
+---
 
-Julia Almeida – RM: 123456 – GitHub
+## 🛠 Passo a Passo de Execução
 
-Carlos Silva – RM: 789012 – GitHub
-
-🚀 Como Executar o Projeto
-📌 Pré-requisitos
-
-Node.js
- (>= 18.x)
-
-npm
- ou yarn
-
-Expo CLI
- (para rodar o app mobile)
-
-Oracle XE
- ou servidor Oracle disponível
-
-SQL Developer
- (opcional, para gerenciar o banco)
-
-🔧 Passo 1 – Clonar o repositório
-git clone https://github.com/seuusuario/AppMottu.git
+### 🔹 1. Clonar o projeto
+```bash
+git clone <url-do-repositorio>
 cd AppMottu
-
-🔧 Passo 2 – Configurar o Banco de Dados Oracle
-
-Crie o usuário e conceda permissões:
-
-CREATE USER appmottu IDENTIFIED BY senha;
-GRANT CONNECT, RESOURCE TO appmottu;
-
-
-Rode o script de criação de tabelas:
-
-@database/create_tables.sql
-
-
-(Opcional) Insira dados de teste:
-
-@database/seed.sql
-
-🔧 Passo 3 – Configurar o Backend
-
-Acesse a pasta do servidor:
-
-cd server
-
-
-Instale as dependências:
-
+🔹 2. Branch MapaSvgGrid2D (versão mais estável – AsyncStorage)
+bash
+Copiar código
+git checkout MapaSvgGrid2D
 npm install
+Backend (autenticação com Oracle)
+bash
+Copiar código
+cd backend
+node server.js
+App
+bash
+Copiar código
+cd ..
+npm run start
+Abrir no emulador Android Studio
 
+Testar login, registro, CRUD de motos e mapas
 
-Configure a conexão no arquivo src/config/database.js:
-
-const DB_USER = process.env.DB_USER || 'appmottu';
-const DB_PASSWORD = process.env.DB_PASSWORD || 'senha';
-const DB_CONNECT = process.env.DB_CONNECT || 'oracle.fiap.com.br/ORCL';
-const PORT = process.env.PORT || 3000;
-
-
-Inicie o servidor:
-
-npm start
-
-
-O backend rodará em:
-👉 http://localhost:3000
-
-🔧 Passo 4 – Rodar o Aplicativo Mobile
-
-Acesse a pasta do app:
-
-cd app
-
-
-Instale as dependências:
-
+🔹 3. Branch IntegracaoApiOracle (com API .NET 8)
+bash
+Copiar código
+git checkout IntegracaoApiOracle
 npm install
+Backend (API .NET 8 – motos/pátios)
+Baixar a pasta MottuGestor.API enviada junto ao projeto.
 
+Abrir no terminal e rodar:
 
-Inicie o app:
+bash
+Copiar código
+dotnet restore
+dotnet build
+cd MottuGestor.API
+dotnet run
+Backend (API Node.js – autenticação)
+bash
+Copiar código
+cd backend
+node server.js
+App
+bash
+Copiar código
+cd ..
+npm run start
+🧪 Como Testar
+Criar usuário → /register
 
-npx expo start
+Fazer login → /login
 
+Criar áreas → direto no app (AsyncStorage)
 
-Escaneie o QR Code no seu celular (com o aplicativo Expo Go) ou rode em um emulador Android/iOS.
+Cadastrar motos → branch MapaSvgGrid2D (local) ou API .NET na branch IntegracaoApiOracle
 
-✅ Pronto! O AppMottu estará em funcionamento com banco Oracle integrado.
+Visualizar no mapa → motos aparecem nas áreas com status e tooltip
+
+🛠 Tecnologias Utilizadas
+Frontend: React Native (Expo), AsyncStorage, SVG/Grid2D
+
+Backend (Autenticação): Node.js, Express, OracleDB, Bcrypt
+
+Backend (Motos/Pátios): .NET 8 Web API, OracleDB
+
+Banco de Dados: Oracle Cloud
+
+Outros: Axios, CORS, Body-Parser
+
+👨‍👩‍👧‍👦 Autores
+Pedro Henrique Jorge De Paula – RM 558833
+
+Jennifer Kaori Suzuki – RM 554661
+
+Felipe Levy Stephens Fidelix – RM 556426
