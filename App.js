@@ -1,8 +1,11 @@
-import React from 'react';
+// App.js
+import React, { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 
 import AuthScreen from './src/screens/AuthScreen';
 import HomeScreen from './src/screens/HomeScreen';
@@ -10,26 +13,31 @@ import MotosScreen from './src/screens/MotosScreen';
 import AddMotorcycleScreen from './src/screens/AddMotorcycleScreen';
 import ManageLocationsScreen from './src/screens/ManageLocationsScreen';
 import PatioMapScreen from './src/screens/PatioMapScreen';
-import { Colors } from './src/style/Colors';
 import ChoosePatioScreen from './src/screens/ChoosePatioScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function HomeTabs() {
+  const { theme } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        headerStyle: { backgroundColor: Colors.mottuDark },
-        headerTintColor: Colors.mottuGreen,
-        tabBarActiveTintColor: Colors.mottuGreen,
-        tabBarInactiveTintColor: Colors.mottuLightGray,
-        tabBarStyle: { backgroundColor: Colors.mottuDark, borderTopColor: '#333' },
+        headerStyle: { backgroundColor: theme.background },
+        headerTintColor: theme.text,
+        tabBarActiveTintColor: theme.accent,
+        tabBarInactiveTintColor: theme.text,
+        tabBarStyle: {
+          backgroundColor: theme.background,
+          borderTopColor: theme === 'dark' ? '#333' : '#ccc',
+        },
         tabBarIcon: ({ color, size, focused }) => {
           let icon = 'ellipse';
           if (route.name === 'HomeTab') icon = focused ? 'home' : 'home-outline';
           if (route.name === 'Motos') icon = focused ? 'bicycle' : 'bicycle-outline';
           if (route.name === 'Mapa') icon = focused ? 'map' : 'map-outline';
+          if (route.name === 'Patios') icon = focused ? 'business' : 'business-outline';
           return <Ionicons name={icon} size={size} color={color} />;
         },
       })}
@@ -49,7 +57,7 @@ function HomeTabs() {
             <Ionicons
               name="location-outline"
               size={22}
-              color={Colors.mottuGreen}
+              color={theme.accent}
               style={{ marginRight: 12 }}
               onPress={() => navigation.navigate('Mapa')}
             />
@@ -62,21 +70,22 @@ function HomeTabs() {
         component={PatioMapScreen}
         options={{ title: 'Mapa' }}
       />
+
       <Tab.Screen
         name="Patios"
         component={ChoosePatioScreen}
-        options={{ title: 'Patios' }}
+        options={{ title: 'Pátios' }}
       />
-
-      {/* REMOVED EscolherPatio from tabs - now on Stack */}
     </Tab.Navigator>
   );
 }
 
-export default function App() {
+function AppNavigator({ initialRoute }) {
+  const { theme } = useTheme();
+
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Auth">
+      <Stack.Navigator initialRouteName={initialRoute}>
         <Stack.Screen
           name="Auth"
           component={AuthScreen}
@@ -89,14 +98,13 @@ export default function App() {
           options={{ headerShown: false }}
         />
 
-        {/* EscolherPatio agora está no Stack: pode ser chamado por navigation.navigate('EscolherPatio') */}
         <Stack.Screen
           name="EscolherPatio"
           component={ChoosePatioScreen}
           options={{
             title: 'Escolher Pátio',
-            headerStyle: { backgroundColor: Colors.mottuDark },
-            headerTintColor: Colors.mottuGreen,
+            headerStyle: { backgroundColor: theme.background },
+            headerTintColor: theme.text,
             headerBackTitleVisible: false,
           }}
         />
@@ -106,8 +114,8 @@ export default function App() {
           component={AddMotorcycleScreen}
           options={{
             title: 'Adicionar Moto',
-            headerStyle: { backgroundColor: Colors.mottuDark },
-            headerTintColor: Colors.mottuGreen,
+            headerStyle: { backgroundColor: theme.background },
+            headerTintColor: theme.text,
             headerBackTitleVisible: false,
           }}
         />
@@ -117,12 +125,30 @@ export default function App() {
           component={ManageLocationsScreen}
           options={{
             title: 'Localizações',
-            headerStyle: { backgroundColor: Colors.mottuDark },
-            headerTintColor: Colors.mottuGreen,
+            headerStyle: { backgroundColor: theme.background },
+            headerTintColor: theme.text,
             headerBackTitleVisible: false,
           }}
         />
       </Stack.Navigator>
     </NavigationContainer>
+  );
+}
+
+export default function App() {
+  const [initialRoute, setInitialRoute] = useState('Auth');
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const user = await AsyncStorage.getItem('user');
+      setInitialRoute(user ? 'Home' : 'Auth');
+    };
+    checkUser();
+  }, []);
+
+  return (
+    <ThemeProvider>
+      <AppNavigator initialRoute={initialRoute} />
+    </ThemeProvider>
   );
 }

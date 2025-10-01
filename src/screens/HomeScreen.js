@@ -5,11 +5,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import HomeStyles from '../style/HomeScreen';
+import { useTheme } from '../context/ThemeContext';
 
 const MOTOS_STORAGE_KEY = '@mottuApp:motorcycles';
 const LOCATIONS_STORAGE_KEY = '@mottuApp:locations';
 
 function HomeScreen({ navigation }) {
+  const { theme, toggleTheme } = useTheme();
+
   const [counts, setCounts] = useState({
     total: 0,
     disponiveis: 0,
@@ -38,20 +41,31 @@ function HomeScreen({ navigation }) {
     );
   };
 
-  // Botão de logout no header
+  // Botões no header (logout + toggle theme)
   useLayoutEffect(() => {
     navigation.setOptions({
+      headerStyle: { backgroundColor: theme.background },
+      headerTintColor: theme.text,
       headerRight: () => (
-        <Ionicons
-          name="log-out-outline"
-          size={24}
-          color="#444"
-          style={{ marginRight: 16 }}
-          onPress={handleLogout}
-        />
+        <View style={{ flexDirection: 'row' }}>
+          <Ionicons
+            name="moon-outline"
+            size={24}
+            color={theme.text}
+            style={{ marginRight: 16 }}
+            onPress={toggleTheme}
+          />
+          <Ionicons
+            name="log-out-outline"
+            size={24}
+            color={theme.text}
+            style={{ marginRight: 16 }}
+            onPress={handleLogout}
+          />
+        </View>
       ),
     });
-  }, [navigation]);
+  }, [navigation, theme]);
 
   // Animated values
   const animValues = {
@@ -148,17 +162,18 @@ function HomeScreen({ navigation }) {
               shadowRadius: shadow,
               shadowOffset: { width: 0, height: 2 },
               elevation: shadow,
+              backgroundColor: theme.card,
             },
           ]}
         >
-          <Ionicons name={icon} size={22} color="#0f0" style={{ marginBottom: 6 }} />
-          <Text style={HomeStyles.cardLabel}>{label}</Text>
-          <Text style={HomeStyles.cardValue}>{value}</Text>
+          <Ionicons name={icon} size={22} color={theme.accent} style={{ marginBottom: 6 }} />
+          <Text style={[HomeStyles.cardLabel, { color: theme.text }]}>{label}</Text>
+          <Text style={[HomeStyles.cardValue, { color: theme.text }]}>{value}</Text>
 
           <Animated.View style={[HomeStyles.extraContent, { opacity }]}>
-            <Text style={HomeStyles.extraText}>Última atualização: agora mesmo</Text>
-            <View style={HomeStyles.fakeBar}>
-              <View style={[HomeStyles.fakeBarFill, { width: `${Math.min(value * 10, 100)}%` }]} />
+            <Text style={[HomeStyles.extraText, { color: theme.text }]}>Última atualização: agora mesmo</Text>
+            <View style={[HomeStyles.fakeBar, { backgroundColor: theme.background }]}>
+              <View style={[HomeStyles.fakeBarFill, { width: `${Math.min(value * 10, 100)}%`, backgroundColor: theme.accent }]} />
             </View>
           </Animated.View>
         </Animated.View>
@@ -168,14 +183,14 @@ function HomeScreen({ navigation }) {
 
   return (
     <ScrollView
-      style={HomeStyles.container}
+      style={[HomeStyles.container, { backgroundColor: theme.background }]}
       contentContainerStyle={HomeStyles.content}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
-      <Text style={HomeStyles.title}>Dashboard do Pátio</Text>
-      <Text style={HomeStyles.subtitle}>Resumo rápido da operação</Text>
+      <Text style={[HomeStyles.title, { color: theme.text }]}>Dashboard do Pátio</Text>
+      <Text style={[HomeStyles.subtitle, { color: theme.text }]}>Resumo rápido da operação</Text>
 
       <View style={HomeStyles.grid}>
         {renderCard('total', 'Motos (Total)', counts.total, 'bicycle-outline')}
@@ -184,9 +199,9 @@ function HomeScreen({ navigation }) {
         {renderCard('locais', 'Localizações', counts.locais, 'location-outline')}
       </View>
 
-      <View style={HomeStyles.noteBox}>
-        <Text style={HomeStyles.noteTitle}>Dica</Text>
-        <Text style={HomeStyles.noteText}>
+      <View style={[HomeStyles.noteBox, { backgroundColor: theme.card }]}>
+        <Text style={[HomeStyles.noteTitle, { color: theme.accent }]}>Dica</Text>
+        <Text style={[HomeStyles.noteText, { color: theme.text }]}>
           Use as abas abaixo para alternar entre o mapa e a lista de motos.
           Você pode adicionar motos no botão “+” da lista e gerenciar os locais
           pelo ícone no topo da aba Motos.

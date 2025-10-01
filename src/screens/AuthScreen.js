@@ -16,11 +16,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AuthStyles from '../style/AuthScreen';
-import { Colors } from '../style/Colors';
+import { useTheme } from '../context/ThemeContext'; // <-- Importa o tema
 
 const API_URL = 'http://10.0.2.2:3000'; // ajuste este IP para o do backend
 
 function AuthScreen({ navigation }) {
+    const { theme } = useTheme(); // pega tema do contexto
+
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -136,10 +138,8 @@ function AuthScreen({ navigation }) {
                 response = await axios.post(`${API_URL}/login`, { username, password });
                 Alert.alert('Sucesso', response.data.message);
 
-                // Salva usuário logado no AsyncStorage
                 await AsyncStorage.setItem('user', JSON.stringify({ username }));
-
-                navigation.replace('Home'); // troca a pilha e vai para Home
+                navigation.replace('Home');
             } else {
                 response = await axios.post(`${API_URL}/register`, { username, email, password });
                 Alert.alert('Sucesso', response.data.message + ' Agora faça login.');
@@ -157,19 +157,22 @@ function AuthScreen({ navigation }) {
     };
 
     return (
-        <SafeAreaView style={AuthStyles.safeArea}>
+        <SafeAreaView style={[AuthStyles.safeArea, { backgroundColor: theme.background }]}>
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
                 <ScrollView contentContainerStyle={AuthStyles.container}>
                     <View style={AuthStyles.logoContainer}>
-                        <Text style={AuthStyles.logoText}>MOTTU</Text>
+                        <Text style={[AuthStyles.logoText, { color: theme.accent }]}>MOTTU</Text>
                     </View>
 
                     <View style={AuthStyles.toggleButtonContainer}>
                         <TouchableOpacity
-                            style={[AuthStyles.toggleButton, isLogin && AuthStyles.toggleButtonActive]}
+                            style={[
+                                AuthStyles.toggleButton,
+                                { backgroundColor: isLogin ? theme.accent : theme.card },
+                            ]}
                             onPress={() => {
                                 setIsLogin(true);
                                 setUsername(''); setEmail(''); setPassword(''); setConfirmPassword('');
@@ -178,12 +181,16 @@ function AuthScreen({ navigation }) {
                                 Animated.timing(fadeAnim, { toValue: 1, duration: 1000, useNativeDriver: true }).start();
                             }}
                         >
-                            <Text style={[AuthStyles.toggleButtonText, isLogin && AuthStyles.toggleButtonTextActive]}>
+                            <Text style={{ color: isLogin ? theme.background : theme.text }}>
                                 Login
                             </Text>
                         </TouchableOpacity>
+
                         <TouchableOpacity
-                            style={[AuthStyles.toggleButton, !isLogin && AuthStyles.toggleButtonActive]}
+                            style={[
+                                AuthStyles.toggleButton,
+                                { backgroundColor: !isLogin ? theme.accent : theme.card },
+                            ]}
                             onPress={() => {
                                 setIsLogin(false);
                                 setUsername(''); setEmail(''); setPassword(''); setConfirmPassword('');
@@ -192,7 +199,7 @@ function AuthScreen({ navigation }) {
                                 Animated.timing(fadeAnim, { toValue: 1, duration: 1000, useNativeDriver: true }).start();
                             }}
                         >
-                            <Text style={[AuthStyles.toggleButtonText, !isLogin && AuthStyles.toggleButtonTextActive]}>
+                            <Text style={{ color: !isLogin ? theme.background : theme.text }}>
                                 Registrar
                             </Text>
                         </TouchableOpacity>
@@ -201,63 +208,82 @@ function AuthScreen({ navigation }) {
                     <Animated.View style={[AuthStyles.fadeContainer, { opacity: fadeAnim }]}>
                         <View style={AuthStyles.formContainer}>
                             <TextInput
-                                style={[AuthStyles.input, usernameError ? AuthStyles.inputError : {}]}
+                                style={[
+                                    AuthStyles.input,
+                                    { backgroundColor: theme.card, color: theme.text },
+                                    usernameError ? AuthStyles.inputError : {},
+                                ]}
                                 placeholder="Nome de Usuário"
-                                placeholderTextColor={Colors.mottuLightGray}
+                                placeholderTextColor={theme.text + '99'}
                                 value={username}
                                 onChangeText={validateUsername}
                                 autoCapitalize="none"
                             />
-                            {usernameError ? <Text style={AuthStyles.errorText}>{usernameError}</Text> : null}
+                            {usernameError ? <Text style={{ color: theme.accent }}>{usernameError}</Text> : null}
 
                             {!isLogin && (
                                 <>
                                     <TextInput
-                                        style={[AuthStyles.input, emailError ? AuthStyles.inputError : {}]}
+                                        style={[
+                                            AuthStyles.input,
+                                            { backgroundColor: theme.card, color: theme.text },
+                                            emailError ? AuthStyles.inputError : {},
+                                        ]}
                                         placeholder="E-mail"
-                                        placeholderTextColor={Colors.mottuLightGray}
+                                        placeholderTextColor={theme.text + '99'}
                                         value={email}
                                         onChangeText={validateEmail}
                                         keyboardType="email-address"
                                         autoCapitalize="none"
                                     />
-                                    {emailError ? <Text style={AuthStyles.errorText}>{emailError}</Text> : null}
+                                    {emailError ? <Text style={{ color: theme.accent }}>{emailError}</Text> : null}
                                 </>
                             )}
 
                             <TextInput
-                                style={[AuthStyles.input, passwordError ? AuthStyles.inputError : {}]}
+                                style={[
+                                    AuthStyles.input,
+                                    { backgroundColor: theme.card, color: theme.text },
+                                    passwordError ? AuthStyles.inputError : {},
+                                ]}
                                 placeholder="Senha"
-                                placeholderTextColor={Colors.mottuLightGray}
+                                placeholderTextColor={theme.text + '99'}
                                 value={password}
                                 onChangeText={validatePassword}
                                 secureTextEntry
                             />
-                            {passwordError ? <Text style={AuthStyles.errorText}>{passwordError}</Text> : null}
+                            {passwordError ? <Text style={{ color: theme.accent }}>{passwordError}</Text> : null}
 
                             {!isLogin && (
                                 <>
                                     <TextInput
-                                        style={[AuthStyles.input, confirmPasswordError ? AuthStyles.inputError : {}]}
+                                        style={[
+                                            AuthStyles.input,
+                                            { backgroundColor: theme.card, color: theme.text },
+                                            confirmPasswordError ? AuthStyles.inputError : {},
+                                        ]}
                                         placeholder="Confirme a Senha"
-                                        placeholderTextColor={Colors.mottuLightGray}
+                                        placeholderTextColor={theme.text + '99'}
                                         value={confirmPassword}
                                         onChangeText={validateConfirmPassword}
                                         secureTextEntry
                                     />
-                                    {confirmPasswordError ? <Text style={AuthStyles.errorText}>{confirmPasswordError}</Text> : null}
+                                    {confirmPasswordError ? <Text style={{ color: theme.accent }}>{confirmPasswordError}</Text> : null}
                                 </>
                             )}
 
                             <TouchableOpacity
-                                style={AuthStyles.button}
+                                style={[
+                                    AuthStyles.button,
+                                    { backgroundColor: theme.accent },
+                                ]}
                                 onPress={handleAuthenticate}
                                 disabled={loading}
                             >
                                 {loading ? (
-                                    <ActivityIndicator color={Colors.mottuDark} size="small" />
+                                    <ActivityIndicator color={theme.background} size="small" />
                                 ) : (
-                                    <Text style={AuthStyles.buttonText}>
+                                    <Text style={[AuthStyles.buttonText, { color: theme.background }]}>
                                         {isLogin ? 'Entrar' : 'Registrar'}
                                     </Text>
                                 )}
