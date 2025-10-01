@@ -29,16 +29,16 @@ A Mottu precisa **mapear e controlar motos** em diferentes pátios, com informa�
 
 ## 🗂 Estrutura do Projeto
 
-📦 AppMottu
-┣ 📂 src
-┃ ┣ 📂 screens # Telas principais (Motos, Pátios, Mapas, Login)
-┃ ┣ 📂 components # Componentes reutilizáveis (Modais, Cards, Tooltips)
-┃ ┣ 📂 services # Integração com APIs (.NET e Node.js)
-┃ ┣ 📂 style # Definições de estilos e cores
-┃ ┗ 📂 config # Configurações auxiliares (modelos de motos, etc.)
-┣ 📂 backend # API caseira em Node.js + Oracle (autenticação)
-┣ 📂 MottuGestor.API# API em .NET 8 (motos e pátios)
-┗ README.md
+📦 AppMottu  
+┣ 📂 src  
+┃ ┣ 📂 screens # Telas principais (Motos, Pátios, Mapas, Login)  
+┃ ┣ 📂 components # Componentes reutilizáveis (Modais, Cards, Tooltips)  
+┃ ┣ 📂 services # Integração com APIs (.NET e Node.js)  
+┃ ┣ 📂 style # Definições de estilos e cores  
+┃ ┗ 📂 config # Configurações auxiliares (modelos de motos, etc.)  
+┣ 📂 backend # API caseira em Node.js + Oracle (autenticação)  
+┣ 📂 MottuGestor.API# API em .NET 8 (motos e pátios)  
+┗ README.md  
 
 ---
 
