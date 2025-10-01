@@ -1,159 +1,157 @@
-Projeto Mottu App - Gerenciamento de Frotas (MVP)
-🚨 ATENÇÃO: Ao clonar este repositório, é FUNDAMENTAL que você troque para a branch TRY2 ANTES de instalar as dependências (npm install ou yarn install).
+# 🛵 MottuGestor – Mapeamento Digital de Motos em Pátios
 
-Esta branch (TRY2) contém a versão do projeto onde a funcionalidade de buscar e gerenciar motos ainda utiliza o AsyncStorage localmente para persistência de dados no frontend. O backend Node.js com integração OracleDB está presente, mas a conexão do frontend com ele para o CRUD de motos não está totalmente ativa nesta branch para a listagem (GET /motos).
+> Challenge FIAP – 2TDS | Fevereiro 2025 – 1º Semestre  
 
-Visão Geral do Projeto
-Este projeto é um protótipo de aplicativo de gerenciamento de frotas de motocicletas desenvolvido com React Native (frontend) e Node.js com Oracle Database (backend). Ele visa permitir cadastrar, visualizar, atualizar e excluir motos, além de funcionalidades de autenticação de usuários.
+Aplicativo em **React Native (Expo)** para **gestão digital de motos em pátios da Mottu**, com:
+- Mapa interativo em **SVG + Grid 2D**
+- CRUD de motos
+- Criação de áreas em pátios
+- Autenticação com **API Node.js + Oracle**
+- Integração parcial com **API .NET 8**
 
-Funcionalidades Implementadas (na branch TRY2):
-Backend (Node.js/Express/OracleDB):
+---
 
-Conexão com o banco de dados Oracle.
-Autenticação de usuários (registro e login com bcryptjs para senhas seguras).
-Frontend (React Native/Expo):
+## 📖 Resumo da Proposta
 
-Tela de Autenticação (Login/Registro).
-Tela de Frota de Motos (MotosScreen):
-Exibição da lista de motos.
-Armazenamento de motos localmente via AsyncStorage (nesta branch TRY2).
-Funcionalidade de puxar motos do AsyncStorage.
-Pesquisa de motos por placa.
-Filtragem por status, modelo e localização (com FilterModal).
-Visualização de detalhes e edição de motos (EditMotorcycleModal).
-Exclusão de motos.
-Navegação para tela de Gerenciamento de Localizações e Adicionar Moto.
-Componentes reutilizáveis para modais de edição e filtro.
-Estilização básica da interface.
-Estrutura do Projeto
-O projeto está dividido em duas partes principais:
+O **MottuGestor** foi desenvolvido para resolver o desafio de **organizar e monitorar digitalmente motos em pátios usando RFID**.  
 
-backend/: Contém o código do servidor Node.js e a lógica de interação com o banco de dados Oracle.
+### Problema:
+A Mottu precisa **mapear e controlar motos** em diferentes pátios, com informações de status e localização, de forma prática.
 
-Configuração do Ambiente
-Para rodar este projeto, você precisará ter o Node.js, npm/yarn, e o ambiente de desenvolvimento para React Native (Expo CLI) instalados. Além disso, a máquina onde o backend roda precisará ter o Oracle Instant Client configurado para que o oracledb possa se conectar ao banco de dados.
+### Solução:
+- **Visualização interativa** de pátios em formato de mapa.
+- **Áreas personalizadas** que podem ser criadas, movidas e redimensionadas.
+- **Motos cadastradas** associadas às áreas, exibidas com status e cálculo de distância simulada até o usuário.
+- **Autenticação segura** via API caseira em Node.js + Oracle.
+- **Integração com API .NET** para operações de CRUD (parcialmente implementada).
 
-1. Pré-requisitos
-Node.js e npm/yarn: https://nodejs.org/
-Expo CLI:
+---
 
-Bash
+## 🗂 Estrutura do Projeto
 
-npm install -g expo-cli
-Oracle Database: Acesso a uma instância do Oracle Database (no seu caso, oracle.fiap.com.br:1521/ORCL).
-Oracle Instant Client (no PC do Backend): Siga as instruções oficiais do Oracle para instalar o Instant Client para Node.js na sua máquina onde o server.js será executado. Isso é crucial para que o pacote oracledb funcione.
-https://www.oracle.com/database/technologies/instant-client/downloads.html
-https://oracle.github.io/node-oracledb/INSTALL.html
+📦 AppMottu  
+┣ 📂 src  
+┃ ┣ 📂 screens # Telas principais (Motos, Pátios, Mapas, Login)  
+┃ ┣ 📂 components # Componentes reutilizáveis (Modais, Cards, Tooltips)  
+┃ ┣ 📂 services # Integração com APIs (.NET e Node.js)  
+┃ ┣ 📂 style # Definições de estilos e cores  
+┃ ┗ 📂 config # Configurações auxiliares (modelos de motos, etc.)  
+┣ 📂 backend # API caseira em Node.js + Oracle (autenticação)  
+┣ 📂 MottuGestor.API# API em .NET 8 (motos e pátios)  
+┗ README.md  
 
-2. Clonar o Repositório e Trocar de Branch
-Clone o repositório:
-Bash
+---
 
-git clone 
-Navegue até a pasta do projeto:
-Bash
+## 🚀 Funcionalidades
 
-cd AppMottu # Ou o nome da pasta que foi criada
-MUITO IMPORTANTE: Troque para a branch TRY2 AGORA:
-Bash
+✅ **CRUD de Motos**  
+- Cadastrar, listar, editar e excluir motos  
+- Associação de motos a áreas/pátios  
+- Status coloridos: Disponível, Em Manutenção, Alugada, Aguardando Revisão  
 
-git checkout TRY2
-3. Configuração do Banco de Dados Oracle
+✅ **Gestão de Pátios e Áreas**  
+- 4 pátios disponíveis  
+- Criar áreas customizadas dentro dos pátios  
+- Áreas podem ser movidas e redimensionadas livremente  
 
-A Aplicação ja vem configurada com o banco de dados do Autor, mas caso queira usar o seu...
+✅ **Mapa em Grid 2D (SVG)**  
+- Simulação visual da disposição das motos  
+- Tooltip com informações (modelo, placa, status, área, distância simulada)  
 
-Conecte-se ao seu banco de dados Oracle.
+✅ **Autenticação**  
+- Registro e login de usuários  
+- Senhas armazenadas com hash (bcrypt) no Oracle  
 
-Crie as tabelas users
+✅ **Integração API**  
+- **Branch `MapaSvgGrid2D`** → uso 100% local com AsyncStorage (mais completa e estável).  
+- **Branch `IntegracaoApiOracle`** → integração com API .NET 8 (CRUD de motos e pátios) + API caseira Node.js (login).  
 
-SQL
+---
 
--- Tabela users (para autenticação)
-CREATE TABLE users (
-    ID NUMBER GENERATED BY DEFAULT ON NULL AS IDENTITY,
-    USERNAME VARCHAR2(50) UNIQUE NOT NULL,
-    EMAIL VARCHAR2(100) UNIQUE NOT NULL,
-    PASSWORD VARCHAR2(255) NOT NULL,
-    CREATED_AT TIMESTAMP DEFAULT SYSTIMESTAMP,
-    CONSTRAINT USERS_PK PRIMARY KEY (ID)
-);
+## ⚙️ Pré-requisitos
 
-4. Configuração e Execução do Backend
-Navegue até a pasta backend/ no seu terminal:
-Bash
+- [Node.js](https://nodejs.org/) (>= 18)  
+- [Expo CLI](https://docs.expo.dev/)  
+- [Android Studio](https://developer.android.com/studio) (para emulador Android)  
+- [Oracle Client](https://www.oracle.com/database/technologies/instant-client.html) (para API Node.js)  
+- [.NET 8 SDK](https://dotnet.microsoft.com/en-us/download) (para API .NET)  
 
+---
+
+## 🛠 Passo a Passo de Execução
+
+### 🔹 1. Clonar o projeto
+```bash
+git clone (https://github.com/hDepth/AppMottu.git)
+cd AppMottu
+```
+###🔹 2. Branch MapaSvgGrid2D (versão mais estável – AsyncStorage)
+```bash
+git checkout MapaSvgGrid2D
+npm install
+```
+
+Backend (autenticação com Oracle)
+```bash
 cd backend
-Instale as dependências:
-Bash
-
-npm install
-# ou
-yarn install
-Abra o arquivo backend/server.js.
-Verifique e ajuste as configurações do banco de dados na constante dbConfig:
-JavaScript
-
-const dbConfig = {
-    user            : "rm558833",
-    password        : "200306",
-    connectString   : "oracle.fiap.com.br:1521/ORCL"
-};
-Inicie o servidor backend:
-Bash
-
 node server.js
-Você deverá ver a mensagem: Servidor backend rodando em http://localhost:3000.
-5. Configuração e Execução do Frontend (React Native)
-Navegue de volta para a pasta raiz do projeto no seu terminal:
+```
 
-Bash
+App
 
-cd .. # Se você estava na pasta backend
-Instale as dependências do frontend:
+```bash
+cd ..
+npm run start
+```
 
-Bash
+Abrir no emulador Android Studio
 
+Testar login, registro, CRUD de motos e mapas
+
+###🔹 3. Branch IntegracaoApiOracle (com API .NET 8)
+
+```bash
+git checkout IntegracaoApiOracle
 npm install
-# ou
-yarn install
-Abra o arquivo src/screens/MotosScreen.js.
+```
 
-API_BASE_URL: Nesta branch (TRY2), a API_BASE_URL não é diretamente usada para puxar as motos, pois elas são carregadas do AsyncStorage. No entanto, outras funcionalidades de backend (como login/registro ou futuras integrações de PUT/POST/DELETE com o backend) ainda podem depender dela. Mantenha a URL configurada corretamente para o seu ambiente de teste, caso decida testar as rotas de backend (login/registro ou o CRUD de motos do backend via Postman/Insomnia).
+Backend (API .NET 8 – motos/pátios)
+Baixar a pasta MottuGestor-dev enviada junto ao projeto.
 
-Emulador Android:
-JavaScript
+Abrir no terminal e rodar:
 
-const API_BASE_URL = 'http://10.0.2.2:3000'; 
-Emulador iOS (Xcode Simulator) / Navegador Web / Testando no mesmo PC que o backend:
-JavaScript
+```bash
+dotnet restore
+dotnet build
+cd MottuGestor.API
+dotnet run
+```
 
-const API_BASE_URL = 'http://localhost:3000';
-Dispositivo Físico (Android/iOS) na mesma rede local que o PC do backend:
-JavaScript
+## 🧪 Como Testar
+Criar usuário → /register
 
-// Substitua <SEU_IP_DA_REDE> pelo IP real do seu computador na rede local
-const API_BASE_URL = 'http://<SEU_IP_DA_REDE>:3000';
-Para encontrar seu IP:
-Windows: Abra o Prompt de Comando e digite ipconfig. Procure por "Endereço IPv4" ou "IPv4 Address".
-macOS/Linux: Abra o Terminal e digite ifconfig ou ip a. Procure o IP associado à sua interface de rede (geralmente en0 ou wlan0).
+Fazer login → /login
 
-Inicie o aplicativo React Native:
+Criar áreas → direto no app (AsyncStorage)
 
-Bash
+Cadastrar motos → branch MapaSvgGrid2D (local) ou API .NET na branch IntegracaoApiOracle
 
-npx expo start
-Isso abrirá o Expo Dev Tools no seu navegador. A partir daí, você pode escolher rodar o aplicativo em um emulador, dispositivo físico ou no navegador.
+Visualizar no mapa → motos aparecem nas áreas com status e tooltip
 
-Como Usar o Aplicativo (na branch TRY2)
-Inicie o Backend: Garanta que o servidor Node.js esteja rodando na pasta backend/. (Mesmo que o frontend não puxe diretamente do backend para a listagem principal, o backend ainda é necessário para o login/registro e para testar as outras rotas).
-Inicie o Frontend: Inicie o aplicativo React Native usando npx expo start.
-Crie seu usuário e entre usando suas credenciais
-Acesse o MotosScreen:
-Ao iniciar o aplicativo, você pode navegar para a tela de motos.
-As motos serão carregadas do AsyncStorage. Se for a primeira vez, a lista estará vazia.
-Você pode adicionar motos manualmente (via o botão "+") para que elas sejam salvas no AsyncStorage e apareçam na lista.
-Utilize os campos de busca e os filtros para encontrar motos específicas.
-Toque em uma moto na lista para abrir o modal de edição, onde você pode atualizar os dados ou excluir a moto (essas operações também persistem no AsyncStorage).
-Tente adicionar algumas motos para visualizar os filtros funcionando!
-Page PatioMapScreen: 
-Contém um Mapa do google maps padrão, futuramente será a page que conterá um mapeamento digital completo do pátio da Mottu.
+## 🛠 Tecnologias Utilizadas
+Frontend: React Native (Expo), AsyncStorage, SVG/Grid2D
+
+Backend (Autenticação): Node.js, Express, OracleDB, Bcrypt
+
+Backend (Motos/Pátios): .NET 8 Web API, OracleDB
+
+Banco de Dados: Oracle Cloud
+
+Outros: Axios, CORS, Body-Parser
+
+## 👨‍👩‍👧‍👦 Autores
+Pedro Henrique Jorge De Paula – RM 558833
+
+Jennifer Kaori Suzuki – RM 554661
+
+Felipe Levy Stephens Fidelix – RM 556426
