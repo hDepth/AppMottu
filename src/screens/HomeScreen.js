@@ -1,6 +1,6 @@
 // src/screens/HomeScreen.js
-import React, { useCallback, useState, useRef } from 'react';
-import { View, Text, ScrollView, RefreshControl, Pressable, Animated, Easing, TouchableOpacity } from 'react-native';
+import React, { useCallback, useState, useRef, useLayoutEffect } from 'react';
+import { View, Text, ScrollView, RefreshControl, Pressable, Animated, Easing, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,7 +9,7 @@ import HomeStyles from '../style/HomeScreen';
 const MOTOS_STORAGE_KEY = '@mottuApp:motorcycles';
 const LOCATIONS_STORAGE_KEY = '@mottuApp:locations';
 
-function HomeScreen() {
+function HomeScreen({ navigation }) {
   const [counts, setCounts] = useState({
     total: 0,
     disponiveis: 0,
@@ -19,11 +19,41 @@ function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [expanded, setExpanded] = useState(null);
 
-  const resetStorage = async () => {
-    await AsyncStorage.clear();
-    console.log('AsyncStorage limpo!');
+  // Logout simples
+  const handleLogout = async () => {
+    Alert.alert(
+      'Sair',
+      'Tem certeza que deseja sair?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Sair',
+          style: 'destructive',
+          onPress: async () => {
+            await AsyncStorage.removeItem('user');
+            navigation.replace('Auth');
+          },
+        },
+      ]
+    );
   };
-  // Animated values para os 4 cards
+
+  // Botão de logout no header
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Ionicons
+          name="log-out-outline"
+          size={24}
+          color="#444"
+          style={{ marginRight: 16 }}
+          onPress={handleLogout}
+        />
+      ),
+    });
+  }, [navigation]);
+
+  // Animated values
   const animValues = {
     total: useRef(new Animated.Value(0)).current,
     disponiveis: useRef(new Animated.Value(0)).current,
@@ -65,7 +95,6 @@ function HomeScreen() {
   const toggleExpand = (key) => {
     const isExpanded = expanded === key;
 
-    // recolher todos antes
     Object.entries(animValues).forEach(([name, anim]) => {
       Animated.timing(anim, {
         toValue: 0,
@@ -118,7 +147,7 @@ function HomeScreen() {
               shadowOpacity: 0.25,
               shadowRadius: shadow,
               shadowOffset: { width: 0, height: 2 },
-              elevation: shadow, // Android
+              elevation: shadow,
             },
           ]}
         >
@@ -162,8 +191,6 @@ function HomeScreen() {
           Você pode adicionar motos no botão “+” da lista e gerenciar os locais
           pelo ícone no topo da aba Motos.
         </Text>
-
-        
       </View>
     </ScrollView>
   );
