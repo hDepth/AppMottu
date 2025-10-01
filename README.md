@@ -82,18 +82,22 @@ A Mottu precisa **mapear e controlar motos** em diferentes pátios, com informa�
 
 ### 🔹 1. Clonar o projeto
 ```bash
-git clone <url-do-repositorio>
+git clone (https://github.com/hDepth/AppMottu.git)
 cd AppMottu
+```
+
+```bash
 🔹 2. Branch MapaSvgGrid2D (versão mais estável – AsyncStorage)
-bash
-Copiar código
 git checkout MapaSvgGrid2D
 npm install
+```
+
 Backend (autenticação com Oracle)
-bash
-Copiar código
+```bash
 cd backend
 node server.js
+```
+
 App
 bash
 Copiar código
