@@ -40,9 +40,6 @@ A Mottu precisa **mapear e controlar motos** em diferentes pátios, com informa�
 ┣ 📂 MottuGestor.API# API em .NET 8 (motos e pátios)
 ┗ README.md
 
-markdown
-Copiar código
-
 ---
 
 ## 🚀 Funcionalidades
