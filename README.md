@@ -13,7 +13,7 @@ Aplicativo em **React Native (Expo)** para **gestão digital de motos em pátios
 
 ## 📖 Resumo da Proposta
 
-O **MottuGestor** foi desenvolvido para resolver o desafio de **organizar e monitorar digitalmente motos em pátios**.  
+O **MottuGestor** foi desenvolvido para resolver o desafio de **organizar e monitorar digitalmente motos em pátios usando RFID**.  
 
 ### Problema:
 A Mottu precisa **mapear e controlar motos** em diferentes pátios, com informações de status e localização, de forma prática.
