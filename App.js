@@ -14,6 +14,7 @@ import AddMotorcycleScreen from './src/screens/AddMotorcycleScreen';
 import ManageLocationsScreen from './src/screens/ManageLocationsScreen';
 import PatioMapScreen from './src/screens/PatioMapScreen';
 import ChoosePatioScreen from './src/screens/ChoosePatioScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -76,6 +77,12 @@ function HomeTabs() {
         component={ChoosePatioScreen}
         options={{ title: 'Pátios' }}
       />
+      <Tab.Screen
+        name="Perfil"
+        component={ProfileScreen}
+        options={{ title: 'Perfil' }}
+      />
+
     </Tab.Navigator>
   );
 }
