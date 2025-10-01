@@ -16,6 +16,7 @@ import Svg, { Rect, Circle, Text as SvgText } from "react-native-svg";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Colors } from "../style/Colors";
 import { useFocusEffect, useRoute } from "@react-navigation/native";
+import { getMotos } from "../services/api"; // 🔹 motos da API
 
 const { width } = Dimensions.get("window");
 const CANVAS_SIZE = Math.min(width - 48, 760);
@@ -43,22 +44,43 @@ export default function PatioMapScreen() {
 
   const areasRef = useRef({});
 
+  // 🔹 Carregar áreas + motos (API + AsyncStorage)
   useFocusEffect(
     React.useCallback(() => {
       (async () => {
         try {
-          const rawM = await AsyncStorage.getItem(MOTOS_KEY);
-          const allMotos = rawM ? JSON.parse(rawM) : [];
-          setMotos(allMotos.filter((m) => m.patioId === patioId));
-        } catch {}
-        try {
+          // Áreas
           const rawA = await AsyncStorage.getItem(AREAS_KEY);
           setAreas(rawA ? JSON.parse(rawA) : []);
         } catch {}
+
+        try {
+          // Motos do AsyncStorage
+          const rawM = await AsyncStorage.getItem(MOTOS_KEY);
+          const localMotos = rawM ? JSON.parse(rawM) : [];
+
+          // Motos da API
+          const apiMotos = await getMotos();
+
+          // 🔹 Mesclar (mantém as locais e soma as da API)
+          const merged = [
+            ...localMotos.filter((m) => m.patioId === patioId),
+            ...apiMotos.map((m) => ({
+              ...m,
+              patioId: patioId, // força patio atual
+              areaId: m.areaId || null, // API não fornece
+            })),
+          ];
+
+          setMotos(merged);
+        } catch (err) {
+          console.error("Erro ao carregar motos:", err.message);
+        }
       })();
     }, [patioId])
   );
 
+  // -------- ÁREAS --------
   const persistAreas = async (newAreas) => {
     setAreas(newAreas);
     await AsyncStorage.setItem(AREAS_KEY, JSON.stringify(newAreas));
@@ -114,6 +136,7 @@ export default function PatioMapScreen() {
     setNameModalVisible(false);
   };
 
+  // -------- ÁREAS (mover/redimensionar) --------
   const createMovePan = (areaId, isTemp = false) => {
     return PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -173,7 +196,7 @@ export default function PatioMapScreen() {
     );
   };
 
-  // -------- NOVO: renderizar motos --------
+  // -------- MOTOS --------
   function calcDistance(x, y) {
     const userX = CANVAS_SIZE / 2;
     const userY = CANVAS_SIZE - 40;
@@ -220,6 +243,7 @@ export default function PatioMapScreen() {
     );
   };
 
+  // -------- MAPA --------
   const renderMapShape = () => {
     switch (shape) {
       case "circle":
@@ -283,7 +307,7 @@ export default function PatioMapScreen() {
               <TextInput value={newAreaName} onChangeText={setNewAreaName} placeholder="Ex: Setor A" style={styles.input} />
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
                 <TouchableOpacity style={{ marginRight: 12 }} onPress={cancelCreateArea}><Text>Cancelar</Text></TouchableOpacity>
-                <TouchableOpacity onPress={() => setNameModalVisible(false)}><Text style={{ color: Colors.mottuGreen }}>Ok</Text></TouchableOpacity>
+                <TouchableOpacity onPress={confirmCreateArea}><Text style={{ color: Colors.mottuGreen }}>Ok</Text></TouchableOpacity>
               </View>
             </View>
           </View>
