@@ -85,9 +85,8 @@ A Mottu precisa **mapear e controlar motos** em diferentes pátios, com informa�
 git clone (https://github.com/hDepth/AppMottu.git)
 cd AppMottu
 ```
-
-```bash
 🔹 2. Branch MapaSvgGrid2D (versão mais estável – AsyncStorage)
+```bash
 git checkout MapaSvgGrid2D
 npm install
 ```
@@ -99,40 +98,35 @@ node server.js
 ```
 
 App
-bash
-Copiar código
+
+```bash
 cd ..
 npm run start
+```
+
 Abrir no emulador Android Studio
 
 Testar login, registro, CRUD de motos e mapas
 
 🔹 3. Branch IntegracaoApiOracle (com API .NET 8)
-bash
-Copiar código
+
+```bash
 git checkout IntegracaoApiOracle
 npm install
+```
+
 Backend (API .NET 8 – motos/pátios)
-Baixar a pasta MottuGestor.API enviada junto ao projeto.
+Baixar a pasta MottuGestor-dev enviada junto ao projeto.
 
 Abrir no terminal e rodar:
 
-bash
-Copiar código
+```bash
 dotnet restore
 dotnet build
 cd MottuGestor.API
 dotnet run
-Backend (API Node.js – autenticação)
-bash
-Copiar código
-cd backend
-node server.js
-App
-bash
-Copiar código
-cd ..
-npm run start
+```
+
 🧪 Como Testar
 Criar usuário → /register
 
