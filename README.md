@@ -85,7 +85,7 @@ A Mottu precisa **mapear e controlar motos** em diferentes pátios, com informa�
 git clone (https://github.com/hDepth/AppMottu.git)
 cd AppMottu
 ```
-🔹 2. Branch MapaSvgGrid2D (versão mais estável – AsyncStorage)
+###🔹 2. Branch MapaSvgGrid2D (versão mais estável – AsyncStorage)
 ```bash
 git checkout MapaSvgGrid2D
 npm install
@@ -108,7 +108,7 @@ Abrir no emulador Android Studio
 
 Testar login, registro, CRUD de motos e mapas
 
-🔹 3. Branch IntegracaoApiOracle (com API .NET 8)
+###🔹 3. Branch IntegracaoApiOracle (com API .NET 8)
 
 ```bash
 git checkout IntegracaoApiOracle
@@ -127,7 +127,7 @@ cd MottuGestor.API
 dotnet run
 ```
 
-🧪 Como Testar
+## 🧪 Como Testar
 Criar usuário → /register
 
 Fazer login → /login
@@ -138,7 +138,7 @@ Cadastrar motos → branch MapaSvgGrid2D (local) ou API .NET na branch Integraca
 
 Visualizar no mapa → motos aparecem nas áreas com status e tooltip
 
-🛠 Tecnologias Utilizadas
+## 🛠 Tecnologias Utilizadas
 Frontend: React Native (Expo), AsyncStorage, SVG/Grid2D
 
 Backend (Autenticação): Node.js, Express, OracleDB, Bcrypt
@@ -149,7 +149,7 @@ Banco de Dados: Oracle Cloud
 
 Outros: Axios, CORS, Body-Parser
 
-👨‍👩‍👧‍👦 Autores
+## 👨‍👩‍👧‍👦 Autores
 Pedro Henrique Jorge De Paula – RM 558833
 
 Jennifer Kaori Suzuki – RM 554661
