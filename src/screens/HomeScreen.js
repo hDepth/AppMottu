@@ -1,4 +1,3 @@
-// src/screens/HomeScreen.js
 import React, { useCallback, useState, useRef, useLayoutEffect, useEffect } from 'react';
 import { View, Text, ScrollView, RefreshControl, Pressable, Animated, Easing, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -6,7 +5,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import HomeStyles from '../style/HomeScreen';
 import { useTheme } from '../context/ThemeContext';
-import { registerForPushNotificationsAsync, scheduleLocalNotification } from '../services/notificationService'; // ✅ Novo
+import { registerForPushNotificationsAsync, scheduleLocalNotification } from '../services/notificationService';
+import i18n from '../i18n';
 
 const MOTOS_STORAGE_KEY = '@mottuApp:motorcycles';
 const LOCATIONS_STORAGE_KEY = '@mottuApp:locations';
@@ -23,22 +23,20 @@ function HomeScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [expanded, setExpanded] = useState(null);
 
-  // 🔔 Registrar notificações ao abrir a Home
   useEffect(() => {
     (async () => {
       await registerForPushNotificationsAsync();
     })();
   }, []);
 
-  // 🚪 Logout
   const handleLogout = async () => {
     Alert.alert(
-      'Sair',
-      'Tem certeza que deseja sair?',
+      i18n.t('home.logout_title'),
+      i18n.t('home.logout_confirm'),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: i18n.t('home.cancel'), style: 'cancel' },
         {
-          text: 'Sair',
+          text: i18n.t('home.logout'),
           style: 'destructive',
           onPress: async () => {
             await AsyncStorage.removeItem('user');
@@ -49,7 +47,6 @@ function HomeScreen({ navigation }) {
     );
   };
 
-  // ⚙️ Header (tema + logout)
   useLayoutEffect(() => {
     navigation.setOptions({
       headerStyle: { backgroundColor: theme.background },
@@ -75,7 +72,6 @@ function HomeScreen({ navigation }) {
     });
   }, [navigation, theme]);
 
-  // 🎞️ Animações
   const animValues = {
     total: useRef(new Animated.Value(0)).current,
     disponiveis: useRef(new Animated.Value(0)).current,
@@ -83,7 +79,6 @@ function HomeScreen({ navigation }) {
     locais: useRef(new Animated.Value(0)).current,
   };
 
-  // 📊 Resumo
   const loadSummary = async () => {
     try {
       const motosRaw = await AsyncStorage.getItem(MOTOS_STORAGE_KEY);
@@ -104,19 +99,21 @@ function HomeScreen({ navigation }) {
 
   useFocusEffect(useCallback(() => { loadSummary(); }, []));
 
-  // 🔄 Atualizar + enviar notificação local
   const onRefresh = async () => {
     setRefreshing(true);
     await loadSummary();
     setRefreshing(false);
 
     await scheduleLocalNotification({
-      title: '📊 Atualização concluída',
-      body: `Total: ${counts.total} | Disponíveis: ${counts.disponiveis} | Em manutenção: ${counts.manutencao}`,
+      title: i18n.t('home.refresh_done_title'),
+      body: i18n.t('home.refresh_done_body', {
+        total: counts.total,
+        disponiveis: counts.disponiveis,
+        manutencao: counts.manutencao,
+      }),
     });
   };
 
-  // 🔽 Animação dos cards
   const toggleExpand = (key) => {
     const isExpanded = expanded === key;
     Object.entries(animValues).forEach(([_, anim]) => {
@@ -164,7 +161,7 @@ function HomeScreen({ navigation }) {
 
           <Animated.View style={[HomeStyles.extraContent, { opacity }]}>
             <Text style={[HomeStyles.extraText, { color: theme.text }]}>
-              Última atualização: agora mesmo
+              {i18n.t('home.last_update')}
             </Text>
             <View style={[HomeStyles.fakeBar, { backgroundColor: theme.background }]}>
               <View
@@ -186,23 +183,19 @@ function HomeScreen({ navigation }) {
       contentContainerStyle={HomeStyles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      <Text style={[HomeStyles.title, { color: theme.text }]}>Dashboard do Pátio</Text>
-      <Text style={[HomeStyles.subtitle, { color: theme.text }]}>Resumo rápido da operação</Text>
+      <Text style={[HomeStyles.title, { color: theme.text }]}>{i18n.t('home.title')}</Text>
+      <Text style={[HomeStyles.subtitle, { color: theme.text }]}>{i18n.t('home.subtitle')}</Text>
 
       <View style={HomeStyles.grid}>
-        {renderCard('total', 'Motos (Total)', counts.total, 'bicycle-outline')}
-        {renderCard('disponiveis', 'Disponíveis', counts.disponiveis, 'checkmark-circle-outline')}
-        {renderCard('manutencao', 'Em Manutenção', counts.manutencao, 'construct-outline')}
-        {renderCard('locais', 'Localizações', counts.locais, 'location-outline')}
+        {renderCard('total', i18n.t('home.total'), counts.total, 'bicycle-outline')}
+        {renderCard('disponiveis', i18n.t('home.available'), counts.disponiveis, 'checkmark-circle-outline')}
+        {renderCard('manutencao', i18n.t('home.maintenance'), counts.manutencao, 'construct-outline')}
+        {renderCard('locais', i18n.t('home.locations'), counts.locais, 'location-outline')}
       </View>
 
       <View style={[HomeStyles.noteBox, { backgroundColor: theme.card }]}>
-        <Text style={[HomeStyles.noteTitle, { color: theme.accent }]}>Dica</Text>
-        <Text style={[HomeStyles.noteText, { color: theme.text }]}>
-          Use as abas abaixo para alternar entre o mapa e a lista de motos.
-          Você pode adicionar motos no botão “+” da lista e gerenciar os locais
-          pelo ícone no topo da aba Motos.
-        </Text>
+        <Text style={[HomeStyles.noteTitle, { color: theme.accent }]}>{i18n.t('home.tip_title')}</Text>
+        <Text style={[HomeStyles.noteText, { color: theme.text }]}>{i18n.t('home.tip_text')}</Text>
       </View>
     </ScrollView>
   );

@@ -1,0 +1,11 @@
+{
+    "profile": {
+      "role": "Encarregado de Pátio",
+      "employeeId": "ID do Funcionário",
+      "patio": "Pátio",
+      "motos": "Motos",
+      "chooseLanguage": "Escolher Idioma",
+      "logout": "Sair"
+    }
+  }
+  

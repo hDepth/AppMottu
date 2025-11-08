@@ -17,20 +17,27 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSUserTrackingUsageDescription": "App usa notificações para avisar sobre mudanças importantes no pátio.",
-        "UIBackgroundModes": ["remote-notification"]
-    }
-     },
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
+      }
+    },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "permissions": ["NOTIFICATIONS"],
+      "permissions": [
+        "NOTIFICATIONS"
+      ],
       "useNextNotificationsApi": true,
       "edgeToEdgeEnabled": true
     },
     "web": {
       "favicon": "./src/assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-localization"
+    ]
   }
 }

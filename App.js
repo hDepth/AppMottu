@@ -16,6 +16,8 @@ import PatioMapScreen from './src/screens/PatioMapScreen';
 import ChoosePatioScreen from './src/screens/ChoosePatioScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 
+import I18n, { t } from './src/i18n';
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 

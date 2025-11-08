@@ -1,0 +1,11 @@
+{
+    "profile": {
+      "role": "Yard Manager",
+      "employeeId": "Employee ID",
+      "patio": "Yard",
+      "motos": "Motorcycles",
+      "chooseLanguage": "Choose Language",
+      "logout": "Logout"
+    }
+  }
+  
