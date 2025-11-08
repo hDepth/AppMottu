@@ -14,13 +14,19 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
-    },
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSUserTrackingUsageDescription": "App usa notificações para avisar sobre mudanças importantes no pátio.",
+        "UIBackgroundModes": ["remote-notification"]
+    }
+     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "permissions": ["NOTIFICATIONS"],
+      "useNextNotificationsApi": true,
       "edgeToEdgeEnabled": true
     },
     "web": {

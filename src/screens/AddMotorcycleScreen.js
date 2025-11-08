@@ -20,6 +20,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import AddMotorcycleStyles from '../style/AddMotorcycleScreen';
 import { Colors } from '../style/Colors';
 import { BIKE_MODELS } from '../config/bikeModels';
+import { scheduleLocalNotification } from '../services/notificationService'; // ✅ Importação do serviço
 
 const STATUS_OPTIONS = [
   'Selecione um status',
@@ -189,6 +190,12 @@ function AddMotorcycleScreen({ navigation, route }) {
 
       Alert.alert('Sucesso!', 'Moto adicionada com sucesso!');
 
+      // 🔔 Notificação local
+      await scheduleLocalNotification({
+        title: '🏍️ Nova moto adicionada',
+        body: `${modelName} (${licensePlate}) foi adicionada à frota com status "${status}".`,
+      });
+
       // Limpar
       setSelectedModelId('selecione_modelo');
       setLicensePlate('');
@@ -299,7 +306,7 @@ function AddMotorcycleScreen({ navigation, route }) {
               <Text style={AddMotorcycleStyles.errorText}>{statusError}</Text>
             ) : null}
 
-            {/* Áreas do Pátio */}
+            {/* Áreas */}
             {selectedPatioId ? (
               <View style={{ marginBottom: 16 }}>
                 <Text style={AddMotorcycleStyles.label}>
@@ -358,7 +365,7 @@ function AddMotorcycleScreen({ navigation, route }) {
               </TouchableOpacity>
             </View>
 
-            {/* Botão Salvar */}
+            {/* Botão */}
             <TouchableOpacity
               style={AddMotorcycleStyles.button}
               onPress={handleSaveMotorcycle}

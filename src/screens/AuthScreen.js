@@ -18,7 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import AuthStyles from '../style/AuthScreen';
 import { Colors } from '../style/Colors';
 
-const API_URL = 'http://10.0.2.2:3000'; // ajuste este IP para o do backend
+const API_URL = 'http://192.168.0.12:3000'; // ajuste este IP para o do backend
 
 function AuthScreen({ navigation }) {
     const [username, setUsername] = useState('');
