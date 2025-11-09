@@ -88,7 +88,6 @@ cd AppMottu
 ```
 ###🔹 2. Branch Main (versão mais estável – AsyncStorage)
 ```bash
-git checkout MapaSvgGrid2D
 npm install
 ```
 
