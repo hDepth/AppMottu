@@ -6,7 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import HomeStyles from '../style/HomeScreen';
 import { useTheme } from '../context/ThemeContext';
 import { registerForPushNotificationsAsync, scheduleLocalNotification } from '../services/notificationService';
-import i18n from '../i18n';
+// 👈 CORREÇÃO: Importar a função 't' para usar o wrapper seguro
+import I18n, { t } from '../i18n/'; 
 
 const MOTOS_STORAGE_KEY = '@mottuApp:motorcycles';
 const LOCATIONS_STORAGE_KEY = '@mottuApp:locations';
@@ -31,12 +32,12 @@ function HomeScreen({ navigation }) {
 
   const handleLogout = async () => {
     Alert.alert(
-      i18n.t('home.logout_title'),
-      i18n.t('home.logout_confirm'),
+      t('home.logout_title'), // 👈 Usando t()
+      t('home.logout_confirm'), // 👈 Usando t()
       [
-        { text: i18n.t('home.cancel'), style: 'cancel' },
+        { text: t('home.cancel'), style: 'cancel' }, // 👈 Usando t()
         {
-          text: i18n.t('home.logout'),
+          text: t('home.logout'), // 👈 Usando t()
           style: 'destructive',
           onPress: async () => {
             await AsyncStorage.removeItem('user');
@@ -51,6 +52,8 @@ function HomeScreen({ navigation }) {
     navigation.setOptions({
       headerStyle: { backgroundColor: theme.background },
       headerTintColor: theme.text,
+      // 👈 Adiciona o título da tela (usando t())
+      headerTitle: t('home.header_title'), 
       headerRight: () => (
         <View style={{ flexDirection: 'row' }}>
           <Ionicons
@@ -104,9 +107,10 @@ function HomeScreen({ navigation }) {
     await loadSummary();
     setRefreshing(false);
 
+    // 👈 Usando t()
     await scheduleLocalNotification({
-      title: i18n.t('home.refresh_done_title'),
-      body: i18n.t('home.refresh_done_body', {
+      title: t('home.refresh_done_title'),
+      body: t('home.refresh_done_body', {
         total: counts.total,
         disponiveis: counts.disponiveis,
         manutencao: counts.manutencao,
@@ -161,7 +165,7 @@ function HomeScreen({ navigation }) {
 
           <Animated.View style={[HomeStyles.extraContent, { opacity }]}>
             <Text style={[HomeStyles.extraText, { color: theme.text }]}>
-              {i18n.t('home.last_update')}
+              {t('home.last_update')} {/* 👈 Usando t() */}
             </Text>
             <View style={[HomeStyles.fakeBar, { backgroundColor: theme.background }]}>
               <View
@@ -183,19 +187,19 @@ function HomeScreen({ navigation }) {
       contentContainerStyle={HomeStyles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      <Text style={[HomeStyles.title, { color: theme.text }]}>{i18n.t('home.title')}</Text>
-      <Text style={[HomeStyles.subtitle, { color: theme.text }]}>{i18n.t('home.subtitle')}</Text>
+      <Text style={[HomeStyles.title, { color: theme.text }]}>{t('home.title')}</Text>
+      <Text style={[HomeStyles.subtitle, { color: theme.text }]}>{t('home.subtitle')}</Text>
 
       <View style={HomeStyles.grid}>
-        {renderCard('total', i18n.t('home.total'), counts.total, 'bicycle-outline')}
-        {renderCard('disponiveis', i18n.t('home.available'), counts.disponiveis, 'checkmark-circle-outline')}
-        {renderCard('manutencao', i18n.t('home.maintenance'), counts.manutencao, 'construct-outline')}
-        {renderCard('locais', i18n.t('home.locations'), counts.locais, 'location-outline')}
+        {renderCard('total', t('home.total'), counts.total, 'bicycle-outline')}
+        {renderCard('disponiveis', t('home.available'), counts.disponiveis, 'checkmark-circle-outline')}
+        {renderCard('manutencao', t('home.maintenance'), counts.manutencao, 'construct-outline')}
+        {renderCard('locais', t('home.locations'), counts.locais, 'location-outline')}
       </View>
 
       <View style={[HomeStyles.noteBox, { backgroundColor: theme.card }]}>
-        <Text style={[HomeStyles.noteTitle, { color: theme.accent }]}>{i18n.t('home.tip_title')}</Text>
-        <Text style={[HomeStyles.noteText, { color: theme.text }]}>{i18n.t('home.tip_text')}</Text>
+        <Text style={[HomeStyles.noteTitle, { color: theme.accent }]}>{t('home.tip_title')}</Text>
+        <Text style={[HomeStyles.noteText, { color: theme.text }]}>{t('home.tip_text')}</Text>
       </View>
     </ScrollView>
   );

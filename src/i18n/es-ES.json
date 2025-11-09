@@ -1,0 +1,35 @@
+{
+  "profile": {
+    "languageChangedTitle": "Idioma cambiado",
+    "languageChanged": "El idioma se ha cambiado con éxito.",
+    "defaultUser": "Usuario",
+    "role": "Operador de Patio",
+    "employeeId": "Matrícula",
+    "patio": "Patio Actual",
+    "motos": "Motos en Patio",
+    "chooseLanguage": "Elige tu idioma",
+    "logout": "Salir",
+    "langPt": "🇧🇷 Português",
+    "langEn": "🇺🇸 English",
+    "langEs": "🇪🇸 Español"
+  },
+  
+  "home": {
+    "header_title": "Panel Principal",
+    "title": "Resumen del Patio",
+    "subtitle": "Información en tiempo real sobre tu operación.",
+    "total": "Total de Motos",
+    "available": "Disponibles",
+    "maintenance": "En Mantenimiento",
+    "locations": "Ubicaciones Registradas",
+    "last_update": "Última actualización: Ahora",
+    "tip_title": "Consejo Rápido",
+    "tip_text": "Toca las tarjetas para ver más detalles y gráficos de progreso.",
+    "logout_title": "Confirmación de Salida",
+    "logout_confirm": "¿Estás seguro de que quieres cerrar la sesión?",
+    "logout": "Salir",
+    "cancel": "Cancelar",
+    "refresh_done_title": "Datos Actualizados",
+    "refresh_done_body": "El resumen del patio se ha recargado. Total de {total} motos, con {disponiveis} disponibles y {manutencao} en mantenimiento."
+  }
+}

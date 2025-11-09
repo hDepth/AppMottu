@@ -1,11 +1,35 @@
 {
-    "profile": {
-      "role": "Encarregado de Pátio",
-      "employeeId": "ID do Funcionário",
-      "patio": "Pátio",
-      "motos": "Motos",
-      "chooseLanguage": "Escolher Idioma",
-      "logout": "Sair"
-    }
-  }
+  "profile": {
+    "languageChangedTitle": "Idioma alterado",
+    "languageChanged": "O idioma foi alterado com sucesso.",
+    "defaultUser": "Usuário",
+    "role": "Operador de Pátio",
+    "employeeId": "Matrícula",
+    "patio": "Pátio Atual",
+    "motos": "Motos no Pátio",
+    "chooseLanguage": "Escolha seu idioma",
+    "logout": "Sair",
+    "langPt": "🇧🇷 Português",
+    "langEn": "🇺🇸 English",
+    "langEs": "🇪🇸 Español"
+  },
   
+  "home": {
+    "header_title": "Painel Principal",
+    "title": "Visão Geral do Pátio",
+    "subtitle": "Informações em tempo real sobre sua operação.",
+    "total": "Total de Motos",
+    "available": "Disponíveis",
+    "maintenance": "Em Manutenção",
+    "locations": "Locais Cadastrados",
+    "last_update": "Última atualização: Agora",
+    "tip_title": "Dica Rápida",
+    "tip_text": "Toque nos cartões para ver mais detalhes e gráficos de progresso.",
+    "logout_title": "Confirmação de Saída",
+    "logout_confirm": "Tem certeza de que deseja encerrar a sessão?",
+    "logout": "Sair",
+    "cancel": "Cancelar",
+    "refresh_done_title": "Dados Atualizados",
+    "refresh_done_body": "O resumo do pátio foi recarregado. Total de {total} motos, com {disponiveis} disponíveis e {manutencao} em manutenção."
+  }
+}

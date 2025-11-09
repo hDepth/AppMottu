@@ -10,26 +10,29 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import I18n, { t } from '../i18n/';
-console.log('[DEBUG TRADUÇÃO]', I18n.t('profile.role'));
+// ⚠️ Importe o I18n e o t do seu index.js!
+import I18n, { t } from '../i18n/'; 
 
 const LOCALE_KEY = '@mottuApp:locale';
 
 export default function ProfileScreen({ navigation }) {
   const { theme } = useTheme();
   const [user, setUser] = useState(null);
-  const [locale, setLocale] = useState(I18n.locale || 'pt-BR');
+  // Define o estado inicial com o locale já carregado pelo i18n
+  const [locale, setLocale] = useState(I18n.locale || 'pt-BR'); 
 
   useEffect(() => {
     const loadData = async () => {
       const storedUser = await AsyncStorage.getItem('user');
       if (storedUser) setUser(JSON.parse(storedUser));
 
+      // Carrega o idioma salvo, se não houver, usa o que já foi detectado
       const saved = await AsyncStorage.getItem(LOCALE_KEY);
+      const initialLocale = saved || I18n.locale;
       if (saved) {
         I18n.locale = saved;
-        setLocale(saved);
       }
+      setLocale(initialLocale);
     };
     loadData();
   }, []);
@@ -38,7 +41,9 @@ export default function ProfileScreen({ navigation }) {
     try {
       I18n.locale = newLocale;
       await AsyncStorage.setItem(LOCALE_KEY, newLocale);
-      setLocale(newLocale);
+      setLocale(newLocale); // Força a re-renderização da tela com o novo estado
+      
+      // O Alert agora vai usar o idioma que acabamos de definir
       Alert.alert(t('profile.languageChangedTitle'), t('profile.languageChanged'));
     } catch (e) {
       console.error('Erro ao trocar idioma', e);
@@ -86,21 +91,33 @@ export default function ProfileScreen({ navigation }) {
           </Text>
 
           <View style={styles.langButtons}>
+            {/* Botão Português */}
             <TouchableOpacity
               style={[styles.langButton, locale === 'pt-BR' && styles.langButtonActive]}
               onPress={() => changeLanguage('pt-BR')}
             >
               <Text style={[styles.langText, locale === 'pt-BR' && styles.langTextActive]}>
-                🇧🇷 Português
+                {t('profile.langPt')} {/* 👈 MUDANÇA */}
               </Text>
             </TouchableOpacity>
 
+            {/* Botão Inglês */}
             <TouchableOpacity
               style={[styles.langButton, locale === 'en-US' && styles.langButtonActive]}
               onPress={() => changeLanguage('en-US')}
             >
               <Text style={[styles.langText, locale === 'en-US' && styles.langTextActive]}>
-                🇺🇸 English
+                {t('profile.langEn')} {/* 👈 MUDANÇA */}
+              </Text>
+            </TouchableOpacity>
+            
+            {/* 👈 NOVO BOTÃO DE ESPANHOL */}
+            <TouchableOpacity
+              style={[styles.langButton, locale === 'es' && styles.langButtonActive]}
+              onPress={() => changeLanguage('es')}
+            >
+              <Text style={[styles.langText, locale === 'es' && styles.langTextActive]}>
+                {t('profile.langEs')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -136,7 +153,7 @@ const styles = StyleSheet.create({
   infoValue: { fontSize: 16, fontWeight: '600' },
   langSection: { marginBottom: 30, width: '100%', alignItems: 'center' },
   langTitle: { fontSize: 16, fontWeight: '700', marginBottom: 10 },
-  langButtons: { flexDirection: 'row', gap: 10 },
+  langButtons: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }, // 👈 Adicionei wrap e center
   langButton: {
     borderRadius: 8,
     paddingVertical: 10,
