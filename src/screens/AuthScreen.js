@@ -18,7 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import AuthStyles from '../style/AuthScreen';
 import { Colors } from '../style/Colors';
 
-const API_URL = 'https://mottu-backend.onrender.com';
+const API_URL = 'http://10.0.2.2:3000';
 
 function AuthScreen({ navigation }) {
     const [username, setUsername] = useState('');
