@@ -63,7 +63,8 @@ A Mottu precisa **mapear e controlar motos** em diferentes pátios, com informa�
 - Senhas armazenadas com hash (bcrypt) no Oracle  
 
 ✅ **Integração API**  
-- **Branch `Main`** → uso 100% local com AsyncStorage (mais completa e estável).  
+- **Branch `Main`** → uso 100% local com AsyncStorage (mais completa e estável). Com link de Deploy no render para autenticação.
+- **Branch `MapaSvgGrid2D`** → Backend Local com ip Padrão para emulador de android Studio para autenticação.
 - **Branch `IntegracaoApiOracle`** → integração com API .NET 8 (CRUD de motos e pátios) + API caseira Node.js (login).  
 
 ---
@@ -105,7 +106,19 @@ Abrir no emulador Android Studio
 
 Testar login, registro, CRUD de motos e mapas
 
-###🔹 3. Branch IntegracaoApiOracle (com API .NET 8)
+###🔹 3. Branch MapaSvgGrid2D (com autenticação local)
+
+```bash
+git checkout MapaSvgGrid2D
+npm install
+```
+
+```bash
+cd backend
+node server.js
+```
+
+###🔹 4. Branch IntegracaoApiOracle (com API .NET 8)
 
 ```bash
 git checkout IntegracaoApiOracle
