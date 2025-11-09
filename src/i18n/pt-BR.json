@@ -1,0 +1,49 @@
+{
+  "profile": {
+    "languageChangedTitle": "Idioma alterado",
+    "languageChanged": "O idioma foi alterado com sucesso.",
+    "defaultUser": "Usuário",
+    "role": "Operador de Pátio",
+    "employeeId": "Matrícula",
+    "patio": "Pátio Atual",
+    "motos": "Motos no Pátio",
+    "chooseLanguage": "Escolha seu idioma",
+    "logout": "Sair",
+    "langPt": "🇧🇷 Português",
+    "langEn": "🇺🇸 English",
+    "langEs": "🇪🇸 Español"
+  },
+  
+  "home": {
+    "header_title": "Painel Principal",
+    "title": "Visão Geral do Pátio",
+    "subtitle": "Informações em tempo real sobre sua operação.",
+    "total": "Total de Motos",
+    "available": "Disponíveis",
+    "maintenance": "Em Manutenção",
+    "locations": "Locais Cadastrados",
+    "last_update": "Última atualização: Agora",
+    "tip_title": "Dica Rápida",
+    "tip_text": "Toque nos cartões para ver mais detalhes e gráficos de progresso.",
+    "logout_title": "Confirmação de Saída",
+    "logout_confirm": "Tem certeza de que deseja encerrar a sessão?",
+    "logout": "Sair",
+    "cancel": "Cancelar",
+    "refresh_done_title": "Dados Atualizados",
+    "refresh_done_body": "O resumo do pátio foi recarregado. Total de {total} motos, com {disponiveis} disponíveis e {manutencao} em manutenção."
+  },
+  "about": {
+  "title": "Sobre o App",
+  "subtitle": "Informações e créditos da aplicação Mottu Digital",
+  "appInfo": "Informações do Aplicativo",
+  "appName": "Nome do App",
+  "version": "Versão",
+  "commit": "Hash do Commit",
+  "descriptionTitle": "Descrição",
+  "descriptionText": "O aplicativo Mottu Digital foi desenvolvido como projeto acadêmico, simulando o gerenciamento digital de motos no pátio. Inclui mapa, cadastro, notificações e troca de idioma.",
+  "developedBy": "Desenvolvido por",
+  "contact": "Contato",
+  "footer": "© 2025 - Mottu Digital | Projeto Acadêmico FIAP"
+}
+
+}

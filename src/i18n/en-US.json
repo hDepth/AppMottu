@@ -1,0 +1,49 @@
+{
+  "profile": {
+    "languageChangedTitle": "Language Changed",
+    "languageChanged": "The language has been changed successfully.",
+    "defaultUser": "User",
+    "role": "Yard Operator",
+    "employeeId": "Employee ID",
+    "patio": "Current Yard",
+    "motos": "Bikes in Yard",
+    "chooseLanguage": "Choose your language",
+    "logout": "Logout",
+    "langPt": "🇧🇷 Português",
+    "langEn": "🇺🇸 English",
+    "langEs": "🇪🇸 Español"
+  },
+  
+  "home": {
+    "header_title": "Main Dashboard",
+    "title": "Yard Overview",
+    "subtitle": "Real-time information about your operation.",
+    "total": "Total Motorcycles",
+    "available": "Available",
+    "maintenance": "In Maintenance",
+    "locations": "Registered Locations",
+    "last_update": "Last update: Now",
+    "tip_title": "Quick Tip",
+    "tip_text": "Tap the cards to view more details and progress charts.",
+    "logout_title": "Logout Confirmation",
+    "logout_confirm": "Are you sure you want to end your session?",
+    "logout": "Logout",
+    "cancel": "Cancel",
+    "refresh_done_title": "Data Refreshed",
+    "refresh_done_body": "The yard summary has been reloaded. Total of {total} bikes, with {disponiveis} available and {manutencao} in maintenance."
+  },
+  "about": {
+  "title": "About the App",
+  "subtitle": "Information and credits for the Mottu Digital app",
+  "appInfo": "Application Info",
+  "appName": "App Name",
+  "version": "Version",
+  "commit": "Commit Hash",
+  "descriptionTitle": "Description",
+  "descriptionText": "The Mottu Digital app was developed as an academic project simulating the digital management of motorcycles in the yard. It includes mapping, registration, notifications, and language switching.",
+  "developedBy": "Developed by",
+  "contact": "Contact",
+  "footer": "© 2025 - Mottu Digital | FIAP Academic Project"
+}
+
+}

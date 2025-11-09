@@ -14,17 +14,39 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSUserTrackingUsageDescription": "App usa notificações para avisar sobre mudanças importantes no pátio.",
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "permissions": [
+        "NOTIFICATIONS"
+      ],
+      "useNextNotificationsApi": true,
+      "edgeToEdgeEnabled": true,
+      "googleServicesFile": "./google-services.json",
+      "package": "com.dephenrique.AppMottu.Sp4"
     },
     "web": {
       "favicon": "./src/assets/favicon.png"
+    },
+    "plugins": [
+      "expo-localization"
+    ],
+    "extra": {
+       "commitHash": "695bda9",
+       "versionName": "1.0.1",
+      "eas": {
+        "projectId": "f29aac2b-cc2c-4640-8bbc-c90665728267"
+      }
     }
   }
 }

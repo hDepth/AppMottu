@@ -1,144 +1,311 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Button, StyleSheet, ActivityIndicator } from 'react-native';
-import MapView, { Marker } from 'react-native-maps'; // Importando MapView e Marker
-import * as Location from 'expo-location'; // Importando expo-location
+// src/screens/PatioMapScreen.js
+import React, { useState, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Dimensions,
+  TouchableOpacity,
+  Modal,
+  TextInput,
+  Alert,
+  PanResponder,
+  TouchableWithoutFeedback,
+} from "react-native";
+import Svg, { Rect, Circle, Text as SvgText } from "react-native-svg";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Colors } from "../style/Colors";
+import { useFocusEffect, useRoute } from "@react-navigation/native";
 
-// Importe seus estilos, como você já tem:
-import styles from '../style/PatioMapScreen';
+const { width } = Dimensions.get("window");
+const CANVAS_SIZE = Math.min(width - 48, 760);
+const GRID_SIZE = 20;
 
-const PatioMapScreen = () => {
-    // Estado para armazenar as coordenadas geográficas
-    const [location, setLocation] = useState(null);
-    // Estado para o status da permissão de localização
-    const [permissionStatus, setPermissionStatus] = useState(null);
-    // Estado para indicar se o mapa está carregando
-    const [isLoading, setIsLoading] = useState(true);
+function uid(prefix = "") {
+  return `${prefix}${Date.now()}${Math.floor(Math.random() * 999)}`;
+}
+function snapToGrid(value) {
+  return Math.round(value / GRID_SIZE) * GRID_SIZE;
+}
 
-    // UseEffect para solicitar permissão e obter a localização
-    useEffect(() => {
-        (async () => {
-            let { status } = await Location.requestForegroundPermissionsAsync();
-            setPermissionStatus(status);
+export default function PatioMapScreen() {
+  const route = useRoute();
+  const { patioId, selectedPatio, shape } = route.params || {};
+  const AREAS_KEY = `@mottuApp:areas_patio_${patioId}`;
+  const MOTOS_KEY = "@mottuApp:motorcycles";
 
-            if (status !== 'granted') {
-                console.log('Permissão de localização não concedida!');
-                setIsLoading(false); // Para parar o loading se a permissão não for concedida
-                return;
-            }
+  const [areas, setAreas] = useState([]);
+  const [motos, setMotos] = useState([]);
+  const [tempArea, setTempArea] = useState(null);
+  const [nameModalVisible, setNameModalVisible] = useState(false);
+  const [newAreaName, setNewAreaName] = useState("");
+  const [tooltipMoto, setTooltipMoto] = useState(null);
 
-            // Se a permissão foi concedida, tente obter a localização
-            try {
-                let currentLocation = await Location.getCurrentPositionAsync({});
-                setLocation(currentLocation.coords);
-                console.log('Localização do usuário:', currentLocation.coords);
-            } catch (error) {
-                console.error('Erro ao obter localização:', error);
-            } finally {
-                setIsLoading(false);
-            }
-        })();
-    }, []);
+  const areasRef = useRef({});
 
-    // Função para solicitar a permissão novamente (se o usuário negou antes)
-    const requestPermission = async () => {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        setPermissionStatus(status);
-        if (status === 'granted') {
-            setIsLoading(true);
-            try {
-                let currentLocation = await Location.getCurrentPositionAsync({});
-                setLocation(currentLocation.coords);
-                console.log('Localização do usuário (após re-solicitação):', currentLocation.coords);
-            } catch (error) {
-                console.error('Erro ao obter localização após re-solicitação:', error);
-            } finally {
-                setIsLoading(false);
-            }
-        }
+  useFocusEffect(
+    React.useCallback(() => {
+      (async () => {
+        try {
+          const rawM = await AsyncStorage.getItem(MOTOS_KEY);
+          const allMotos = rawM ? JSON.parse(rawM) : [];
+          setMotos(allMotos.filter((m) => m.patioId === patioId));
+        } catch {}
+        try {
+          const rawA = await AsyncStorage.getItem(AREAS_KEY);
+          setAreas(rawA ? JSON.parse(rawA) : []);
+        } catch {}
+      })();
+    }, [patioId])
+  );
+
+  const persistAreas = async (newAreas) => {
+    setAreas(newAreas);
+    await AsyncStorage.setItem(AREAS_KEY, JSON.stringify(newAreas));
+  };
+
+  const resetAreas = async () => {
+    Alert.alert("Resetar áreas", `Apagar TODAS as áreas do ${selectedPatio}?`, [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Apagar",
+        style: "destructive",
+        onPress: async () => {
+          await AsyncStorage.removeItem(AREAS_KEY);
+          setAreas([]);
+        },
+      },
+    ]);
+  };
+
+  const startCreateArea = () => {
+    const w = snapToGrid(CANVAS_SIZE * 0.25);
+    const h = snapToGrid(CANVAS_SIZE * 0.15);
+    const a = {
+      id: uid("area-"),
+      name: "",
+      patioId,
+      x: snapToGrid((CANVAS_SIZE - w) / 2),
+      y: snapToGrid((CANVAS_SIZE - h) / 2),
+      width: w,
+      height: h,
     };
+    setTempArea(a);
+    setNewAreaName("");
+    setNameModalVisible(true);
+  };
 
-    // Coordenadas do pátio fixas (Exemplo: São Paulo)
-    // Você pode ajustar isso para a localização real do seu pátio
-    const patioLocation = {
-        latitude: -23.550520,  // Exemplo: Lat de São Paulo
-        longitude: -46.633300, // Exemplo: Lng de São Paulo
-        latitudeDelta: 0.0922, // Zoom padrão
-        longitudeDelta: 0.0421, // Zoom padrão
-    };
+  const confirmCreateArea = async () => {
+    if (!tempArea) return;
+    if (!newAreaName.trim()) {
+      Alert.alert("Nome obrigatório", "Dê um nome para a área.");
+      return;
+    }
+    const saved = { ...tempArea, name: newAreaName.trim() };
+    setTempArea(null);
+    setNewAreaName("");
+    setNameModalVisible(false);
+    await persistAreas([...areas, saved]);
+  };
 
-    // Renderiza o mapa ou mensagens de carregamento/permissão
-    const renderMapContent = () => {
-        if (isLoading) {
-            return (
-                <View style={styles.loadingOverlay}>
-                    <ActivityIndicator size="large" color="#0000ff" />
-                    <Text>Carregando mapa e localização...</Text>
-                </View>
-            );
-        }
+  const cancelCreateArea = () => {
+    setTempArea(null);
+    setNewAreaName("");
+    setNameModalVisible(false);
+  };
 
-        if (permissionStatus !== 'granted') {
-            return (
-                <View style={styles.permissionContainer}>
-                    <Text>Permissão de localização não concedida.</Text>
-                    <Text>Para visualizar o mapa, precisamos da sua localização.</Text>
-                    <Button title="Solicitar Permissão" onPress={requestPermission} />
-                </View>
-            );
-        }
+  const createMovePan = (areaId, isTemp = false) => {
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        const base = isTemp ? tempArea : areas.find((a) => a.id === areaId);
+        areasRef.current[areaId] = base ? { ...base } : null;
+      },
+      onPanResponderMove: (evt, gesture) => {
+        const ar = areasRef.current[areaId];
+        if (!ar) return;
+        const nx = snapToGrid(Math.min(Math.max(ar.x + gesture.dx, 0), CANVAS_SIZE - ar.width));
+        const ny = snapToGrid(Math.min(Math.max(ar.y + gesture.dy, 0), CANVAS_SIZE - ar.height));
+        if (isTemp) setTempArea((prev) => (prev ? { ...prev, x: nx, y: ny } : prev));
+        else setAreas((prev) => prev.map((p) => (p.id === areaId ? { ...p, x: nx, y: ny } : p)));
+      },
+      onPanResponderRelease: () => { areasRef.current[areaId] = null; },
+    });
+  };
 
-        // Se tiver a localização do usuário, centraliza lá, senão no pátio
-        const initialRegion = location ? {
-            latitude: location.latitude,
-            longitude: location.longitude,
-            latitudeDelta: 0.01, // Um zoom mais próximo para o usuário
-            longitudeDelta: 0.01,
-        } : patioLocation; // Caso não consiga a localização do usuário, usa a do pátio
+  const createResizePan = (areaId, corner, isTemp = false) => {
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderMove: (evt, gesture) => {
+        if (isTemp) setTempArea((prev) => prev && prev.id === areaId ? resizeLogic(prev, corner, gesture) : prev);
+        else setAreas((prev) => prev.map((a) => (a.id === areaId ? resizeLogic(a, corner, gesture) : a)));
+      },
+    });
+  };
 
-        return (
-            <MapView
-                style={styles.map}
-                initialRegion={initialRegion}
-                // Você pode usar onRegionChangeComplete se quiser saber a região atual do mapa
-            >
-                {/* Marcador para a localização do usuário (se disponível) */}
-                {location && (
-                    <Marker
-                        coordinate={{ latitude: location.latitude, longitude: location.longitude }}
-                        title="Sua Localização"
-                        description="Você está aqui!"
-                    />
-                )}
-                {/* Marcador para o pátio da Mottu */}
-                <Marker
-                    coordinate={{ latitude: patioLocation.latitude, longitude: patioLocation.longitude }}
-                    title="Pátio da Mottu"
-                    description="Localização principal da frota"
-                    pinColor="blue" // Cor diferente para o marcador do pátio
-                />
-                {/* Aqui você adicionaria marcadores para as motos */}
-                {/* Exemplo de um marcador de moto (você buscará isso do backend) */}
-                {/*
-                <Marker
-                    coordinate={{ latitude: -23.5510, longitude: -46.6340 }}
-                    title="Moto A123"
-                    description="Status: Em pátio"
-                    pinColor="green"
-                />
-                */}
-            </MapView>
-        );
-    };
+  const resizeLogic = (a, corner, gesture) => {
+    let { x, y, width, height } = a;
+    if (corner.includes("right")) width = snapToGrid(Math.max(40, width + gesture.dx));
+    if (corner.includes("bottom")) height = snapToGrid(Math.max(40, height + gesture.dy));
+    if (corner.includes("left")) { const newX = snapToGrid(Math.max(0, x + gesture.dx)); width = snapToGrid(Math.max(40, width - (newX - x))); x = newX; }
+    if (corner.includes("top")) { const newY = snapToGrid(Math.max(0, y + gesture.dy)); height = snapToGrid(Math.max(40, height - (newY - y))); y = newY; }
+    return { ...a, x, y, width, height };
+  };
+
+  const renderArea = (a, isTemp = false) => {
+    const movePan = createMovePan(a.id, isTemp);
+    const handles = [
+      { corner: "top-left", x: a.x - 8, y: a.y - 8 },
+      { corner: "top-right", x: a.x + a.width - 8, y: a.y - 8 },
+      { corner: "bottom-left", x: a.x - 8, y: a.y + a.height - 8 },
+      { corner: "bottom-right", x: a.x + a.width - 8, y: a.y + a.height - 8 },
+    ];
+    return (
+      <React.Fragment key={a.id + (isTemp ? '-temp' : '')}>
+        <Rect x={a.x} y={a.y} width={a.width} height={a.height}
+          fill={isTemp ? "rgba(76,175,80,0.12)" : "rgba(76,175,80,0.18)"} stroke={isTemp ? Colors.mottuGreen : Colors.mottuDark} strokeWidth={2} {...movePan.panHandlers} />
+        <SvgText x={a.x + a.width/2} y={a.y + 16} fontSize={12} fill={Colors.mottuDark} fontWeight="700" textAnchor="middle">{a.name || 'Área'}</SvgText>
+        {handles.map(h => {
+          const resizePan = createResizePan(a.id, h.corner, isTemp);
+          return <Rect key={h.corner} x={h.x} y={h.y} width={16} height={16} fill={Colors.mottuGreen} stroke="#fff" strokeWidth={2} rx={4} ry={4} {...resizePan.panHandlers} />;
+        })}
+      </React.Fragment>
+    );
+  };
+
+  // -------- NOVO: renderizar motos --------
+  function calcDistance(x, y) {
+    const userX = CANVAS_SIZE / 2;
+    const userY = CANVAS_SIZE - 40;
+    const dx = userX - x;
+    const dy = userY - y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    return `${Math.round(dist / 5)} m`;
+  }
+
+  const renderMotoInArea = (m) => {
+    if (!m.areaId) return null;
+    const area = areas.find((a) => a.id === m.areaId);
+    if (!area) return null;
+
+    const margin = 8;
+    const maxCols = Math.max(1, Math.floor((area.width - margin * 2) / 28));
+    const maxRows = Math.max(1, Math.floor((area.height - margin * 2) / 28));
+    const hash = m.id.split('').reduce((s, c) => s + c.charCodeAt(0), 0);
+    const col = hash % maxCols;
+    const row = Math.floor(hash / 7) % maxRows;
+    const x = area.x + margin + col * 28 + 14;
+    const y = area.y + margin + row * 28 + 14;
+
+    let color = Colors.mottuGreen;
+    if (m.status === 'Em Manutenção') color = '#ff9800';
+    else if (m.status === 'Alugada') color = '#f44336';
+    else if (m.status === 'Aguardando Revisão') color = '#2196f3';
 
     return (
-        <View style={styles.container}>
-            {renderMapContent()}
-        </View>
+      <React.Fragment key={`moto-${m.id}`}>
+        <Circle cx={x} cy={y} r={10} fill={color} onPress={() => setTooltipMoto(m)} />
+        <SvgText x={x} y={y + 20} fontSize={9} fill="#111" textAnchor="middle">🛵</SvgText>
+        {tooltipMoto && tooltipMoto.id === m.id && (
+          <>
+            <Rect x={x + 12} y={y - 10} width={140} height={70} fill="#fff" stroke="#333" rx={6} />
+            <SvgText x={x + 16} y={y + 5} fontSize={10} fill="#111">{m.licensePlate}</SvgText>
+            <SvgText x={x + 16} y={y + 18} fontSize={9} fill="#555">{m.model}</SvgText>
+            <SvgText x={x + 16} y={y + 30} fontSize={9} fill={color}>{m.status}</SvgText>
+            <SvgText x={x + 16} y={y + 42} fontSize={9} fill="#777">{area.name}</SvgText>
+            <SvgText x={x + 16} y={y + 54} fontSize={9} fill="#000">Dist: {calcDistance(x, y)}</SvgText>
+          </>
+        )}
+      </React.Fragment>
     );
-};
+  };
 
-// Seus estilos separados em src/style/PatioMapScreenStyles.js
-// Aqui estão os estilos base que devem estar lá, adaptados
-// Remova o StyleSheet.create daqui, já está importado!
+  const renderMapShape = () => {
+    switch (shape) {
+      case "circle":
+        return <Circle cx={CANVAS_SIZE/2} cy={CANVAS_SIZE/2} r={CANVAS_SIZE/2 - 20} fill="#fff" stroke={Colors.mottuDark} />;
+      case "L":
+        return <>
+          <Rect x={0} y={0} width={CANVAS_SIZE*0.35} height={CANVAS_SIZE} fill="#fff" stroke={Colors.mottuDark} />
+          <Rect x={CANVAS_SIZE*0.35} y={CANVAS_SIZE*0.65} width={CANVAS_SIZE*0.65} height={CANVAS_SIZE*0.35} fill="#fff" stroke={Colors.mottuDark} />
+        </>;
+      case "X":
+        return <>
+          <Rect x={CANVAS_SIZE/2 - 30} y={0} width={60} height={CANVAS_SIZE} fill="#fff" stroke={Colors.mottuDark} rx={20} ry={20} transform={`rotate(45 ${CANVAS_SIZE/2} ${CANVAS_SIZE/2})`} />
+          <Rect x={CANVAS_SIZE/2 - 30} y={0} width={60} height={CANVAS_SIZE} fill="#fff" stroke={Colors.mottuDark} rx={20} ry={20} transform={`rotate(-45 ${CANVAS_SIZE/2} ${CANVAS_SIZE/2})`} />
+        </>;
+      default:
+        return <>
+          {[...Array(Math.floor(CANVAS_SIZE / GRID_SIZE))].map((_, i) => <Rect key={'v'+i} x={i*GRID_SIZE} y={0} width={1} height={CANVAS_SIZE} fill={'rgba(0,0,0,0.05)'} />)}
+          {[...Array(Math.floor(CANVAS_SIZE / GRID_SIZE))].map((_, i) => <Rect key={'h'+i} x={0} y={i*GRID_SIZE} width={CANVAS_SIZE} height={1} fill={'rgba(0,0,0,0.05)'} />)}
+        </>;
+    }
+  };
 
-export default PatioMapScreen;
+  return (
+    <TouchableWithoutFeedback onPress={() => setTooltipMoto(null)}>
+      <View style={styles.screen}>
+        <View style={styles.header}>
+          <Text style={styles.title}>{selectedPatio} <Text style={styles.shapeTag}>• {shape}</Text></Text>
+          <View style={{ flexDirection: 'row' }}>
+            {!tempArea ? (
+              <>
+                <TouchableOpacity style={styles.btn} onPress={startCreateArea}><Text style={styles.btnText}>Criar área</Text></TouchableOpacity>
+                <TouchableOpacity style={[styles.btn, { backgroundColor: '#f44336' }]} onPress={resetAreas}><Text style={[styles.btnText, { color:'#fff' }]}>Resetar</Text></TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <TouchableOpacity style={[styles.btn, { backgroundColor: Colors.mottuGreen }]} onPress={confirmCreateArea}><Text style={styles.btnText}>Confirmar</Text></TouchableOpacity>
+                <TouchableOpacity style={[styles.btn, { backgroundColor: '#f44336' }]} onPress={cancelCreateArea}><Text style={styles.btnText}>Cancelar</Text></TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+
+        <View style={styles.card}>
+          <View style={styles.canvasOuter}>
+            <Svg width={CANVAS_SIZE} height={CANVAS_SIZE} style={styles.canvas}>
+              {renderMapShape()}
+              {areas.map(a => renderArea(a))}
+              {tempArea && renderArea(tempArea, true)}
+              {motos.map(m => renderMotoInArea(m))}
+              {/* marcador do usuário */}
+              <Circle cx={CANVAS_SIZE / 2} cy={CANVAS_SIZE - 40} r={8} fill="#1976d2" />
+              <SvgText x={CANVAS_SIZE / 2} y={CANVAS_SIZE - 22} fontSize={10} fill="#1976d2" textAnchor="middle">Você</SvgText>
+            </Svg>
+          </View>
+        </View>
+
+        <Modal transparent visible={nameModalVisible} animationType="slide">
+          <View style={styles.modalWrap}>
+            <View style={styles.modalCard}>
+              <Text style={{ fontWeight: '700', marginBottom: 8 }}>Nome da área</Text>
+              <TextInput value={newAreaName} onChangeText={setNewAreaName} placeholder="Ex: Setor A" style={styles.input} />
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+                <TouchableOpacity style={{ marginRight: 12 }} onPress={cancelCreateArea}><Text>Cancelar</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => setNameModalVisible(false)}><Text style={{ color: Colors.mottuGreen }}>Ok</Text></TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      </View>
+    </TouchableWithoutFeedback>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex:1, backgroundColor: Colors.mottuDark, padding: 12 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  title: { color: Colors.mottuGreen, fontSize: 18, fontWeight: '800' },
+  shapeTag: { color: Colors.mottuLightGray, fontSize: 13, fontWeight: '600' },
+  btn: { padding: 8, borderRadius: 8, marginLeft: 8, backgroundColor: '#0f1a16' },
+  btnText: { color: '#fff', fontWeight: '700' },
+
+  card: { backgroundColor: '#0b0f0f', borderRadius: 14, padding: 14, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12, elevation: 10 },
+  canvasOuter: { backgroundColor: '#fff', borderRadius: 8, padding: 8 },
+  canvas: { borderWidth: 1, borderColor: '#eee' },
+
+  modalWrap: { flex:1, justifyContent:'center', alignItems:'center', backgroundColor:'rgba(0,0,0,0.35)' },
+  modalCard: { backgroundColor:'#fff', padding:16, width:'90%', borderRadius:10 },
+  input: { borderBottomWidth:1, borderColor:'#ddd', paddingVertical:6 },
+});

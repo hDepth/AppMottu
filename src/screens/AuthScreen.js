@@ -4,51 +4,51 @@ import {
     View,
     Text,
     TextInput,
-    TouchableOpacity, // Melhor para botões customizados
+    TouchableOpacity,
     Alert,
-    ActivityIndicator, // Indicador de carregamento
-    ScrollView, // Para evitar que o teclado cubra os inputs
-    Animated, // Para animações
-    KeyboardAvoidingView, // Para ajustar o layout quando o teclado aparece
-    Platform, // Para identificar a plataforma
+    ActivityIndicator,
+    ScrollView,
+    Animated,
+    KeyboardAvoidingView,
+    Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context'; // Para padding seguro
+import { SafeAreaView } from 'react-native-safe-area-context';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import AuthStyles from '../style/AuthScreen';
-import { Colors } from '../style/Colors'; // Importa as cores
+import { Colors } from '../style/Colors';
 
-
-const API_URL = 'http://10.0.2.2:3000'; // Não esqueça de ajustar este IP!
+const API_URL = 'https://mottu-backend.onrender.com';
 
 function AuthScreen({ navigation }) {
     const [username, setUsername] = useState('');
-    const [email, setEmail] = useState(''); // Novo campo: email
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState(''); // Novo campo: confirmar senha
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [isLogin, setIsLogin] = useState(true);
-    const [loading, setLoading] = useState(false); // Estado para o indicador de carregamento
+    const [loading, setLoading] = useState(false);
 
-    // Estados para validação
+    // Estados de validação
     const [usernameError, setUsernameError] = useState('');
     const [emailError, setEmailError] = useState('');
     const [passwordError, setPasswordError] = useState('');
     const [confirmPasswordError, setConfirmPasswordError] = useState('');
 
-    // Animação para o formulário
-    const fadeAnim = useRef(new Animated.Value(0)).current; // Initial value for opacity: 0
+    // Animação
+    const fadeAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         Animated.timing(fadeAnim, {
             toValue: 1,
-            duration: 1000, // Duração da animação em milissegundos
-            useNativeDriver: true, // Use o driver nativo para melhor performance
+            duration: 1000,
+            useNativeDriver: true,
         }).start();
-    }, [fadeAnim, isLogin]); // Reinicia a animação quando isLogin muda
+    }, [fadeAnim, isLogin]);
 
     // Validações em tempo real
     const validateUsername = (text) => {
         setUsername(text);
-        if (text.length < 3 && !isLogin) { // Mínimo de 3 caracteres para registro
+        if (text.length < 3 && !isLogin) {
             setUsernameError('O nome de usuário deve ter pelo menos 3 caracteres.');
         } else {
             setUsernameError('');
@@ -58,7 +58,7 @@ function AuthScreen({ navigation }) {
     const validateEmail = (text) => {
         setEmail(text);
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(text) && !isLogin && text.length > 0) { // Valida formato de email
+        if (!emailRegex.test(text) && !isLogin && text.length > 0) {
             setEmailError('Formato de e-mail inválido.');
         } else {
             setEmailError('');
@@ -67,7 +67,7 @@ function AuthScreen({ navigation }) {
 
     const validatePassword = (text) => {
         setPassword(text);
-        if (!isLogin) { // Validações de senha apenas para registro
+        if (!isLogin) {
             if (text.length < 6) {
                 setPasswordError('A senha deve ter pelo menos 6 caracteres.');
             } else if (!/[A-Z]/.test(text)) {
@@ -101,19 +101,17 @@ function AuthScreen({ navigation }) {
     };
 
     const handleAuthenticate = async () => {
-        // Resetar erros antes de cada tentativa
         setUsernameError('');
         setEmailError('');
         setPasswordError('');
         setConfirmPasswordError('');
 
-        // Validação final antes de enviar
         let hasError = false;
 
         if (isLogin) {
             if (!username) { setUsernameError('Nome de usuário é obrigatório.'); hasError = true; }
             if (!password) { setPasswordError('Senha é obrigatória.'); hasError = true; }
-        } else { // Registro
+        } else {
             if (!username || username.length < 3) { setUsernameError('O nome de usuário deve ter pelo menos 3 caracteres.'); hasError = true; }
             if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setEmailError('E-mail inválido.'); hasError = true; }
             if (!password || password.length < 6 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[!@#$%^&*()]/.test(password)) {
@@ -137,11 +135,15 @@ function AuthScreen({ navigation }) {
             if (isLogin) {
                 response = await axios.post(`${API_URL}/login`, { username, password });
                 Alert.alert('Sucesso', response.data.message);
-                navigation.navigate('Home');
+
+                // Salva usuário logado no AsyncStorage
+                await AsyncStorage.setItem('user', JSON.stringify({ username }));
+
+                navigation.replace('Home'); // troca a pilha e vai para Home
             } else {
                 response = await axios.post(`${API_URL}/register`, { username, email, password });
                 Alert.alert('Sucesso', response.data.message + ' Agora faça login.');
-                setIsLogin(true); // Após o registro, volta para o login
+                setIsLogin(true);
             }
         } catch (error) {
             console.error('Erro de autenticação:', error.response ? error.response.data : error.message);
@@ -170,10 +172,9 @@ function AuthScreen({ navigation }) {
                             style={[AuthStyles.toggleButton, isLogin && AuthStyles.toggleButtonActive]}
                             onPress={() => {
                                 setIsLogin(true);
-                                // Resetar campos e erros ao trocar de modo
                                 setUsername(''); setEmail(''); setPassword(''); setConfirmPassword('');
                                 setUsernameError(''); setEmailError(''); setPasswordError(''); setConfirmPasswordError('');
-                                fadeAnim.setValue(0); // Reinicia a animação
+                                fadeAnim.setValue(0);
                                 Animated.timing(fadeAnim, { toValue: 1, duration: 1000, useNativeDriver: true }).start();
                             }}
                         >
@@ -185,10 +186,9 @@ function AuthScreen({ navigation }) {
                             style={[AuthStyles.toggleButton, !isLogin && AuthStyles.toggleButtonActive]}
                             onPress={() => {
                                 setIsLogin(false);
-                                // Resetar campos e erros ao trocar de modo
                                 setUsername(''); setEmail(''); setPassword(''); setConfirmPassword('');
                                 setUsernameError(''); setEmailError(''); setPasswordError(''); setConfirmPasswordError('');
-                                fadeAnim.setValue(0); // Reinicia a animação
+                                fadeAnim.setValue(0);
                                 Animated.timing(fadeAnim, { toValue: 1, duration: 1000, useNativeDriver: true }).start();
                             }}
                         >
@@ -252,7 +252,7 @@ function AuthScreen({ navigation }) {
                             <TouchableOpacity
                                 style={AuthStyles.button}
                                 onPress={handleAuthenticate}
-                                disabled={loading} // Desabilita o botão enquanto carrega
+                                disabled={loading}
                             >
                                 {loading ? (
                                     <ActivityIndicator color={Colors.mottuDark} size="small" />

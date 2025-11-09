@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "774059705893",
+    "project_id": "appmottufjp",
+    "storage_bucket": "appmottufjp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:774059705893:android:df77291ee1fd0d29a561cc",
+        "android_client_info": {
+          "package_name": "com.dephenrique.AppMottu.Sp4"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCGE7Ea7VIxYtlrmFjJ1jazz7hFXUM8DlA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
