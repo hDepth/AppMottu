@@ -17,6 +17,7 @@ import ChoosePatioScreen from './src/screens/ChoosePatioScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 
 import I18n, { t } from './src/i18n';
+import AboutScreen from './src/screens/AboutScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -83,6 +84,11 @@ function HomeTabs() {
         name="Perfil"
         component={ProfileScreen}
         options={{ title: 'Perfil' }}
+      />
+      <Tab.Screen
+        name="Sobre"
+        component={AboutScreen}
+        options={{ title: 'Sobre' }}
       />
 
     </Tab.Navigator>

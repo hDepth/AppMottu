@@ -31,5 +31,19 @@
     "cancel": "Cancel",
     "refresh_done_title": "Data Refreshed",
     "refresh_done_body": "The yard summary has been reloaded. Total of {total} bikes, with {disponiveis} available and {manutencao} in maintenance."
-  }
+  },
+  "about": {
+  "title": "About the App",
+  "subtitle": "Information and credits for the Mottu Digital app",
+  "appInfo": "Application Info",
+  "appName": "App Name",
+  "version": "Version",
+  "commit": "Commit Hash",
+  "descriptionTitle": "Description",
+  "descriptionText": "The Mottu Digital app was developed as an academic project simulating the digital management of motorcycles in the yard. It includes mapping, registration, notifications, and language switching.",
+  "developedBy": "Developed by",
+  "contact": "Contact",
+  "footer": "© 2025 - Mottu Digital | FIAP Academic Project"
+}
+
 }

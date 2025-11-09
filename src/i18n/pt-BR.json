@@ -31,5 +31,19 @@
     "cancel": "Cancelar",
     "refresh_done_title": "Dados Atualizados",
     "refresh_done_body": "O resumo do pátio foi recarregado. Total de {total} motos, com {disponiveis} disponíveis e {manutencao} em manutenção."
-  }
+  },
+  "about": {
+  "title": "Sobre o App",
+  "subtitle": "Informações e créditos da aplicação Mottu Digital",
+  "appInfo": "Informações do Aplicativo",
+  "appName": "Nome do App",
+  "version": "Versão",
+  "commit": "Hash do Commit",
+  "descriptionTitle": "Descrição",
+  "descriptionText": "O aplicativo Mottu Digital foi desenvolvido como projeto acadêmico, simulando o gerenciamento digital de motos no pátio. Inclui mapa, cadastro, notificações e troca de idioma.",
+  "developedBy": "Desenvolvido por",
+  "contact": "Contato",
+  "footer": "© 2025 - Mottu Digital | Projeto Acadêmico FIAP"
+}
+
 }
