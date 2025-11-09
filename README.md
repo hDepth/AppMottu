@@ -63,7 +63,7 @@ A Mottu precisa **mapear e controlar motos** em diferentes pátios, com informa�
 - Senhas armazenadas com hash (bcrypt) no Oracle  
 
 ✅ **Integração API**  
-- **Branch `MapaSvgGrid2D`** → uso 100% local com AsyncStorage (mais completa e estável).  
+- **Branch `Main`** → uso 100% local com AsyncStorage (mais completa e estável).  
 - **Branch `IntegracaoApiOracle`** → integração com API .NET 8 (CRUD de motos e pátios) + API caseira Node.js (login).  
 
 ---
@@ -85,22 +85,19 @@ A Mottu precisa **mapear e controlar motos** em diferentes pátios, com informa�
 git clone (https://github.com/hDepth/AppMottu.git)
 cd AppMottu
 ```
-###🔹 2. Branch MapaSvgGrid2D (versão mais estável – AsyncStorage)
+###🔹 2. Branch Main (versão mais estável – AsyncStorage)
 ```bash
 git checkout MapaSvgGrid2D
 npm install
 ```
 
 Backend (autenticação com Oracle)
-```bash
-cd backend
-node server.js
-```
+Deploy na Nuvem usando RENDER!
+https://mottu-backend.onrender.com
 
 App
 
 ```bash
-cd ..
 npm run start
 ```
 
@@ -156,5 +153,10 @@ Jennifer Kaori Suzuki – RM 554661
 
 Felipe Levy Stephens Fidelix – RM 556426
 
-## Link do Vídeo Apresentativo 
+## Link do Vídeo Apresentativo
+
+Emulador (Sprint3)
 https://youtu.be/18QmLRkx9Gs?si=nRedcPWXosXLuKza
+
+Celular Físico (Sprint4 - FINAL)
+https://youtu.be/ziqWSM7m2bw?si=9tkniz4DZjo15rHw
